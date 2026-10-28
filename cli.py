@@ -100,11 +100,99 @@ def cmd_probe(args) -> None:
             f.write("## Проверка доступа к магазинам\n\n" + text + "\n")
 
 
+def _some_urls(c, sm, files=4, depth=0):
+    """Часть адресов из sitemap (для больших сайтов читаем только несколько файлов)."""
+    import random
+    from app import crawler
+    text = crawler._get_text(c, sm)
+    if not text:
+        return [], 0
+    locs = re.findall(r"<loc>\s*(.*?)\s*</loc>", text, flags=re.S)
+    if "<sitemapindex" in text and depth < 2:
+        kids = locs[:]
+        random.shuffle(kids)
+        urls = []
+        for k in kids[:files]:
+            urls += _some_urls(c, k, 2, depth + 1)[0]
+        return urls, len(kids)
+    return locs, 1
+
+
+def cmd_analyze(args) -> None:
+    """Проверка всех магазинов из config/shops.yaml: доступ, sitemap, читаются ли карточки книг."""
+    import random
+    import time
+    from collections import Counter
+    from urllib.parse import urlparse
+    import httpx
+    from app import crawler
+    from app.scraper_jsonld import parse_product_page
+
+    random.seed(7)
+    rows = ["| Магазин | Главная | Файлов sitemap | Проверено страниц | Книг распознано | С ISBN | С категорией | Фильтр адреса книги |",
+            "|---|---|---|---|---|---|---|---|"]
+    notes = []
+    with httpx.Client(headers={"User-Agent": crawler.UA}, timeout=25, follow_redirects=True) as c:
+        for shop in crawler.load_shops():
+            name, base = shop["name"], shop["base_url"].rstrip("/")
+            if "CHANGE-ME" in base:
+                rows.append(f"| {name} | нет адреса | | | | | | впиши base_url в shops.yaml |")
+                continue
+            try:
+                home = str(c.get(base).status_code)
+            except Exception as e:  # noqa: BLE001
+                rows.append(f"| {name} | {type(e).__name__} | | | | | | |")
+                continue
+            robots = crawler._get_text(c, base + "/robots.txt")
+            urls, nfiles = [], 0
+            for sm in crawler._discover_sitemaps(c, shop, robots):
+                u, n = _some_urls(c, sm)
+                urls += u
+                nfiles += n
+            if not urls:
+                rows.append(f"| {name} | {home} | 0 | | | | | sitemap не найден или пуст |")
+                continue
+            sample = random.sample(urls, min(args.sample, len(urls)))
+            ok = isbn = cat = 0
+            shapes_ok, shapes_all, good, bad = Counter(), Counter(), [], []
+            for url in sample:
+                segs = [x for x in urlparse(url).path.split("/") if x]
+                shape = (len(segs), segs[0] if len(segs) > 1 else "")
+                shapes_all[shape] += 1
+                html = crawler._get_text(c, url)
+                time.sleep(1.0)
+                prod = parse_product_page(html, url) if html else None
+                if prod:
+                    ok += 1; shapes_ok[shape] += 1
+                    isbn += 1 if prod.get("isbn") else 0
+                    cat += 1 if prod.get("category") else 0
+                    if len(good) < 2:
+                        good.append(f"{prod['title']} — {prod['price']:.0f}")
+                elif len(bad) < 2:
+                    bad.append(url)
+            hint = "—"
+            if shapes_ok:
+                (n, first), hits = shapes_ok.most_common(1)[0]
+                if n > 1 and hits / shapes_all[(n, first)] >= 0.8:
+                    hint = "`^https?://[^/]+/%s(/[^/]+){%d}/?$`" % (re.escape(first), n - 1)
+                else:
+                    hint = "книги в корне сайта, нужен другой признак"
+            rows.append(f"| {name} | {home} | {nfiles} | {len(sample)} | {ok} | {isbn} | {cat} | {hint} |")
+            notes.append(f"- **{name}**: пример книги: {good[0] if good else 'нет'}; не распознано: {', '.join(bad) if bad else 'нет'}")
+    text = "\n".join(rows) + "\n\n" + "\n".join(notes)
+    print(text)
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as f:
+            f.write("## Анализ магазинов\n\n" + text + "\n")
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     ap = argparse.ArgumentParser()
     sub = ap.add_subparsers(required=True)
     p = sub.add_parser("probe", help="проверить доступность магазинов"); p.set_defaults(fn=cmd_probe)
+    p = sub.add_parser("analyze", help="проверить все магазины и карточки книг")
+    p.add_argument("--sample", type=int, default=24); p.set_defaults(fn=cmd_analyze)
     for name, fn in (("daily", None), ("crawl", None)):
         p = sub.add_parser(name)
         p.add_argument("--shop"); p.add_argument("--limit", type=int, default=600)
