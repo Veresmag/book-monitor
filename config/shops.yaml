@@ -1,54 +1,29 @@
-# Адреса и регулярки для магазинов нужно проверить на реальных сайтах.
-# product_url_regex — по какому шаблону отбирать страницы книг из sitemap
-# (если не задан, берутся все ссылки из sitemap: на первых тестах ставь --limit).
-# sitemaps — явные адреса sitemap; если не заданы, ищем в robots.txt и /sitemap.xml.
+# enabled: true  -> магазин попадает в ежедневный сбор.
+# product_url_regex -> шаблон адреса книги (подсказывает отчёт «Analyze shops»).
+# Адреса с пометкой "проверить" нужно подтвердить отчётом: если главная не отвечает 200, домен другой.
 shops:
-  - slug: ksd
-    name: КСД
-    type: publisher
-    base_url: https://ksd.ua
-    enabled: true
+  # --- уже работают в сборе ---
+  - {slug: ksd,      name: КСД,            type: publisher, base_url: "https://ksd.ua",              enabled: true}
+  - {slug: vivat,    name: Vivat,          type: publisher, base_url: "https://vivat.com.ua",        enabled: true}
+  - {slug: starylev, name: Старого Лева,   type: publisher, base_url: "https://starylev.com.ua",     enabled: true}
 
-  - slug: vivat
-    name: Vivat
-    type: publisher
-    base_url: https://vivat.com.ua
-    enabled: true
+  # --- издательства-кандидаты ---
+  - {slug: apriori,  name: Апріорі,        type: publisher, base_url: "https://apriori-publishing.com", enabled: false}
+  - {slug: astrolabium, name: Астролябія,  type: publisher, base_url: "https://astrolabium.com.ua",  enabled: false}
+  - {slug: folio,    name: Фоліо,          type: publisher, base_url: "https://folio.com.ua",        enabled: false}
+  - {slug: ranok,    name: Ранок,          type: publisher, base_url: "https://ranok.com.ua",        enabled: false}
+  - {slug: abababa,  name: А-БА-БА-ГА-ЛА-МА-ГА, type: publisher, base_url: "https://ababahalamaha.com.ua", enabled: false}  # проверить
+  - {slug: nashformat, name: Наш Формат,   type: publisher, base_url: "https://nashformat.ua",       enabled: false}  # проверить
+  - {slug: bohdan,   name: Богдан,         type: publisher, base_url: "https://bohdan-books.com",    enabled: false}  # проверить
 
-  - slug: starylev
-    name: Старого Лева
-    type: publisher
-    base_url: https://starylev.com.ua
-    enabled: true
+  - {slug: nebo,     name: Небо,           type: publisher, base_url: "https://nebopublishing.com.ua", enabled: false}
+  - {slug: rm,       name: Рідна мова,     type: publisher, base_url: "https://ridna-mova.com",      enabled: false}
+  - {slug: bookchef, name: Bookchef,       type: publisher, base_url: "https://bookchef.ua",         enabled: false}
 
-  # TODO: проверь домены и включи
-  - slug: nebo
-    name: Небо Букс
-    type: publisher
-    base_url: https://CHANGE-ME.example
-    enabled: false
-
-  - slug: apriori
-    name: Апріорі
-    type: publisher
-    base_url: https://CHANGE-ME.example
-    enabled: false
-
-  - slug: rm
-    name: РМ
-    type: publisher
-    base_url: https://CHANGE-ME.example
-    enabled: false
-
-  # Второй этап: мультивендорные магазины (тут появится реальная разница в ценах)
-  - slug: yakaboo
-    name: Yakaboo
-    type: marketplace
-    base_url: https://www.yakaboo.ua
-    enabled: false
-
-  - slug: readeat
-    name: Readeat
-    type: marketplace
-    base_url: https://readeat.com
-    enabled: false
+  # --- большие книжные магазины (тут будет разница в ценах) ---
+  - {slug: yakaboo,  name: Yakaboo,        type: marketplace, base_url: "https://www.yakaboo.ua",    enabled: false}
+  - {slug: readeat,  name: Readeat,        type: marketplace, base_url: "https://readeat.com",       enabled: false}
+  - {slug: mbooks,   name: Mbooks,         type: marketplace, base_url: "https://mbooks.com.ua",     enabled: false}
+  - {slug: bookua,   name: Book.ua,        type: marketplace, base_url: "https://book.ua",            enabled: false}
+  - {slug: sens,     name: Сенс,           type: marketplace, base_url: "https://sens.in.ua",         enabled: false}
+  - {slug: bookye,   name: Книгарня Є,     type: marketplace, base_url: "https://book-ye.com.ua",    enabled: false}  # проверить
