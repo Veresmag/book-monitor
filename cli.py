@@ -28,7 +28,7 @@ def load_state() -> None:
                     store.import_offer(conn, sid, {
                         "url": o["url"], "title": b["title"], "author": b.get("author"),
                         "publisher": b.get("publisher"), "isbn": b.get("isbn"), "genre": b.get("genre"),
-                        "mood": b.get("mood"), "price": o["price"], "old_price": o.get("oldPrice"), "in_stock": o.get("inStock", True),
+                        "mood": b.get("mood"), "image": b.get("image"), "year": b.get("year"), "price": o["price"], "old_price": o.get("oldPrice"), "in_stock": o.get("inStock", True),
                     }, o.get("history", []), o.get("seen"))
         if os.path.exists(MISSES_JSON):
             for url, ts in json.load(open(MISSES_JSON, encoding="utf-8")).items():
@@ -53,6 +53,7 @@ def export_state() -> None:
             if offers:
                 books.append({"title": b["title"], "author": b["author"] or "", "publisher": b["publisher"] or "",
                               "isbn": b["isbn"] or "", "genre": b["genre"] or "", "mood": b["mood"] or "",
+                              "image": b["image"] or "", "year": b["year"] or 0,
                               "offers": offers})
         misses = {r["url"]: r["ts"][:10] for r in conn.execute("SELECT url,ts FROM misses ORDER BY url")}
     dump = lambda x: json.dumps(x, ensure_ascii=False, separators=(",", ":"))
@@ -100,7 +101,7 @@ def cmd_probe(args) -> None:
             f.write("## Проверка доступа к магазинам\n\n" + text + "\n")
 
 
-def _some_urls(c, sm, files=4, depth=0):
+def _some_urls(c, sm, files=6, depth=0, log=None):
     """Часть адресов из sitemap (для больших сайтов читаем только несколько файлов)."""
     import random
     from app import crawler
@@ -111,6 +112,9 @@ def _some_urls(c, sm, files=4, depth=0):
     if "<sitemapindex" in text and depth < 2:
         kids = locs[:]
         random.shuffle(kids)
+        kids.sort(key=lambda k: 0 if re.search(r"prod|book|item|good|tovar|knyg|kniga|catalog|shop", k, re.I) else 1)
+        if log is not None:
+            log += [k.rsplit("/", 1)[-1] for k in kids[:12]]
         urls = []
         for k in kids[:files]:
             urls += _some_urls(c, k, 2, depth + 1)[0]
@@ -126,7 +130,7 @@ def cmd_analyze(args) -> None:
     from urllib.parse import urlparse
     import httpx
     from app import crawler
-    from app.scraper_jsonld import parse_product_page
+    from app.scraper_jsonld import diagnose, parse_product_page
 
     random.seed(7)
     rows = ["| Магазин | Главная | Файлов sitemap | Проверено страниц | Книг распознано | С ISBN | С категорией | Фильтр адреса книги |",
@@ -144,11 +148,12 @@ def cmd_analyze(args) -> None:
                 rows.append(f"| {name} | {type(e).__name__} | | | | | | |")
                 continue
             robots = crawler._get_text(c, base + "/robots.txt")
-            urls, nfiles = [], 0
+            urls, nfiles, smlog = [], 0, []
             for sm in crawler._discover_sitemaps(c, shop, robots):
-                u, n = _some_urls(c, sm)
+                u, n = _some_urls(c, sm, log=smlog)
                 urls += u
                 nfiles += n
+            urls = list(dict.fromkeys(urls))
             if not urls:
                 rows.append(f"| {name} | {home} | 0 | | | | | sitemap не найден или пуст |")
                 continue
@@ -169,7 +174,7 @@ def cmd_analyze(args) -> None:
                     if len(good) < 2:
                         good.append(f"{prod['title']} — {prod['price']:.0f}")
                 elif len(bad) < 2:
-                    bad.append(url)
+                    bad.append(f"{url} [{diagnose(html) if html else 'страница не загрузилась'}]")
             hint = "—"
             if shapes_ok:
                 (n, first), hits = shapes_ok.most_common(1)[0]
@@ -178,7 +183,8 @@ def cmd_analyze(args) -> None:
                 else:
                     hint = "книги в корне сайта, нужен другой признак"
             rows.append(f"| {name} | {home} | {nfiles} | {len(sample)} | {ok} | {isbn} | {cat} | {hint} |")
-            notes.append(f"- **{name}**: пример книги: {good[0] if good else 'нет'}; не распознано: {', '.join(bad) if bad else 'нет'}")
+            notes.append(f"- **{name}**: пример книги: {good[0] if good else 'нет'}; не распознано: {'; '.join(bad) if bad else 'нет'}"
+                         + (f"; sitemap-файлы: {', '.join(smlog[:8])}" if smlog else ""))
     text = "\n".join(rows) + "\n\n" + "\n".join(notes)
     print(text)
     if os.environ.get("GITHUB_STEP_SUMMARY"):

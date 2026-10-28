@@ -33,7 +33,7 @@
   .count { color:var(--muted); font-size:.88rem; margin:0 0 8px; }
   details { border-top:1px solid var(--line); }
   details:last-of-type { border-bottom:1px solid var(--line); }
-  summary { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; padding:12px 0; cursor:pointer; list-style:none; }
+  summary { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; padding:12px 0; cursor:pointer; list-style:none; }
   summary::-webkit-details-marker { display:none; }
   .title { font-weight:600; }
   .meta { color:var(--muted); font-size:.87rem; }
@@ -57,6 +57,14 @@
   #toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--ink); color:var(--bg);
            padding:9px 16px; border-radius:8px; font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90vw; }
   #toast.on { opacity:1; }
+  .thumb { width:44px; height:64px; object-fit:cover; border-radius:3px; background:var(--line); display:block; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(145px,1fr)); gap:16px 12px; }
+  .card { text-align:left; background:none; border:0; padding:0; color:inherit; font-weight:400; display:grid; gap:3px; align-content:start; }
+  .card .cover { width:100%; aspect-ratio:2/3; object-fit:cover; border-radius:4px; background:var(--line); display:block; }
+  .card .title { font-size:.92rem; line-height:1.3; }
+  .bighead { display:flex; gap:14px; margin-bottom:12px; }
+  .bighead .cover { width:110px; aspect-ratio:2/3; object-fit:cover; border-radius:4px; background:var(--line); flex:none; }
+  .bighead h2 { margin:0 0 4px; }
   .badge { display:inline-block; font-size:.75rem; font-weight:700; padding:1px 7px; border-radius:999px; background:var(--price); color:var(--bg); margin-left:6px; }
   .tag.fan { border-color:var(--accent); color:var(--accent); }
   .stats { font-size:.86rem; } .stats b { color:var(--ink); }
@@ -92,9 +100,12 @@
     <label>Сортировка<select id="fSort">
       <option value="rel">По релевантности</option><option value="price">Сначала дешевле</option>
       <option value="price_desc">Сначала дороже</option><option value="title">По названию</option>
-      <option value="disc">Больше скидка</option><option value="drop">Сильнее подешевели</option></select></label>
+      <option value="new">Сначала новые</option><option value="disc">Больше скидка</option><option value="drop">Сильнее подешевели</option></select></label>
     <label class="check"><input type="checkbox" id="fStock" checked>Только в наличии</label>
     <label class="check"><input type="checkbox" id="fDisc">Только со скидкой</label>
+    <label>Год от<input id="fYFrom" inputmode="numeric" placeholder="2015"></label>
+    <label>Год до<input id="fYTo" inputmode="numeric" placeholder="2026"></label>
+    <label>Вид<select id="fView"><option value="grid">Плитка с обложками</option><option value="list">Список</option></select></label>
   </div>
   <p class="count" id="count"></p>
   <div id="list"></div>
@@ -109,6 +120,8 @@
   <label class="check"><input type="checkbox" id="aStock" checked>В наличии</label>
   <div class="actions"><button data-close>Отмена</button><button class="primary" id="aSave">Сохранить</button></div>
 </div></dialog>
+
+<dialog id="dBook"><div id="bookBox"></div><div class="actions"><button data-close>Закрыть</button></div></dialog>
 
 <dialog id="dPaste"><h2>Вставить из закладки</h2><div class="form">
   <p class="help">Нажми закладку на странице книги в магазине, затем вставь сюда (Ctrl+V). Можно вставить несколько подряд.</p>
@@ -154,8 +167,9 @@ function ingest(it, day0) {
   const isbn = cleanIsbn(it.isbn), tk = norm(title) + '|' + norm(it.author);
   let b = isbn && db.books.find(x => x.isbn === isbn);
   if (!b) b = db.books.find(x => x.tk === tk && (!isbn || !x.isbn));
-  if (!b) { b = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title, tk, author: '', publisher: '', isbn: '', genre: '', mood: '', offers: [] }; db.books.push(b); }
-  for (const k of ['author', 'publisher', 'genre', 'mood']) if (!b[k] && it[k]) b[k] = String(it[k]).trim();
+  if (!b) { b = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title, tk, author: '', publisher: '', isbn: '', genre: '', mood: '', image: '', year: 0, offers: [] }; db.books.push(b); }
+  for (const k of ['author', 'publisher', 'genre', 'mood', 'image']) if (!b[k] && it[k]) b[k] = String(it[k]).trim();
+  if (!b.year && parseInt(it.year)) b.year = parseInt(it.year);
   if (isbn && !b.isbn) b.isbn = isbn;
   const shop = String(it.shop || '—').trim(), url = it.url || '';
   let o = b.offers.find(x => url ? x.url === url : x.shop === shop);
@@ -300,13 +314,15 @@ function render() {
   fillSelect('fPub', uniq('publisher')); fillSelect('fGenre', [FANT, ...uniq('genre')]); fillSelect('fMood', uniq('mood'));
   const qq = queries($('fQ').value), au = norm($('fAuthor').value), pub = $('fPub').value, ge = $('fGenre').value, mo = $('fMood').value;
   const min = parseFloat($('fMin').value.replace(',', '.')), max = parseFloat($('fMax').value.replace(',', '.'));
-  const stock = $('fStock').checked, onlyDisc = $('fDisc').checked, sort = $('fSort').value;
+  const y1 = parseInt($('fYFrom').value), y2 = parseInt($('fYTo').value), view = $('fView').value, stock = $('fStock').checked, onlyDisc = $('fDisc').checked, sort = $('fSort').value;
 
   let rows = [];
   for (const b of db.books) {
     let sc = 0;
     if (qq.length) { sc = Math.max(...qq.map(q => bookScore(q, tokensOf(b)))); if (!sc) continue; }
     if (au && !norm(b.author).includes(au)) continue;
+    if (!isNaN(y1) && !(b.year >= y1)) continue;
+    if (!isNaN(y2) && !(b.year && b.year <= y2)) continue;
     if (pub && b.publisher !== pub) continue;
     if (ge === FANT ? !isFan(b.genre) : (ge && b.genre !== ge)) continue;
     if (mo && !String(b.mood).split(',').map(s => s.trim()).includes(mo)) continue;
@@ -320,7 +336,7 @@ function render() {
   }
   const cmp = { rel: (a, c) => (c.sc - a.sc) || (a.best.price - c.best.price), price: (a, c) => a.best.price - c.best.price,
     price_desc: (a, c) => c.best.price - a.best.price, title: (a, c) => a.b.title.localeCompare(c.b.title, 'uk'),
-    disc: (a, c) => c.pct - a.pct, drop: (a, c) => a.drop - c.drop }[sort];
+    new: (a, c) => (c.b.year || 0) - (a.b.year || 0) || (a.best.price - c.best.price), disc: (a, c) => c.pct - a.pct, drop: (a, c) => a.drop - c.drop }[sort];
   rows.sort(cmp);
 
   const dym = $('fQ').value.trim().length > 3 ? didYouMean($('fQ').value) : '';
@@ -332,59 +348,89 @@ function render() {
       <button id="bDemo">Загрузить демо-данные</button></div>`;
     return;
   }
-  $('list').innerHTML = rows.map(({ b, offs, best, worst, avg, pct }) => {
+  const shown = rows.slice(0, page * 24);
+  const more = rows.length > shown.length ? `<button id="bMore" class="primary" style="margin:18px auto;display:block">Показать ещё (${rows.length - shown.length})</button>` : '';
+  if (!rows.length) { $('list').innerHTML = '<p class="empty">Ничего не найдено по этим фильтрам.</p>'; return; }
+  if (view === 'grid') {
+    $('list').innerHTML = `<div class="grid">${shown.map(({ b, best, pct }) => `<button type="button" class="card" data-open="${esc(b.id)}">${img(b, 'cover')}
+      <div class="title">${esc(b.title)}</div><div class="meta">${esc(b.author || '')}${b.year ? ' · ' + b.year : ''}</div>
+      <div class="price" style="text-align:left">${money(best.price)}${pct ? `<span class="badge">−${pct}%</span>` : ''}</div></button>`).join('')}</div>${more}`;
+    return;
+  }
+  $('list').innerHTML = shown.map(({ b, offs, best, worst, avg, pct }) => {
     const moods = String(b.mood).split(',').map(s => s.trim()).filter(Boolean).map(m => `<span class="tag">${esc(m)}</span>`).join('');
-    const tbl = [...b.offers].sort((a, c) => a.price - c.price).map(o => {
-      const d = delta(o), dt = d ? `<span class="${d < 0 ? 'down' : 'up'}">${d < 0 ? '↓' : '↑'} ${Math.abs(Math.round(d))}</span>` : '';
-      const ds = discount(o), hist = o.history.slice(-6).map(h => `${h[0].slice(5)}: ${Math.round(h[1])}`).join(' → ');
-      return `<tr><td><a href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener">${esc(o.shop)}</a>
-        <div class="hist">${esc(hist)}</div></td><td>${ds ? `<s>${Math.round(ds.ref)}</s> ` : ''}${money(o.price)} ${dt}${ds ? `<span class="badge">−${ds.pct}%</span>` : ''}</td>
-        <td>${o.inStock ? 'в наличии' : 'нет'}</td>
-        <td><button class="danger" data-delo="${esc(b.id)}" data-i="${b.offers.indexOf(o)}" aria-label="Удалить предложение">✕</button></td></tr>`;
-    }).join('');
     const stats = offs.length > 1
       ? `от <b>${Math.round(best.price)}</b> (${esc(best.shop)}) · средняя <b>${Math.round(avg)}</b> · до <b>${Math.round(worst.price)}</b> (${esc(worst.shop)})`
       : esc(best.shop);
-    return `<details><summary><div><div class="title">${esc(b.title)}</div>
-      <div class="meta">${esc(b.author || 'автор не указан')}${b.publisher ? ', ' + esc(b.publisher) : ''}</div>
+    return `<details><summary>${img(b, 'thumb')}<div><div class="title">${esc(b.title)}</div>
+      <div class="meta">${esc(b.author || 'автор не указан')}${b.publisher ? ', ' + esc(b.publisher) : ''}${b.year ? ', ' + b.year : ''}</div>
       <div class="meta">${b.genre ? `<span class="tag ${isFan(b.genre) ? 'fan' : ''}">${esc(b.genre)}</span>` : ''}${moods}</div>
       <div class="meta stats">${stats}</div></div>
       <div class="price">${money(best.price)}${pct ? `<span class="badge">−${pct}%</span>` : ''}</div></summary>
-      <div class="body"><div class="scroll"><table><tr><th>Магазин</th><th>Цена</th><th>Наличие</th><th></th></tr>${tbl}</table></div>
-      <div class="grid2"><label>Жанр<input data-f="genre" data-id="${esc(b.id)}" value="${esc(b.genre)}"></label>
-      <label>Настроение (через запятую)<input data-f="mood" data-id="${esc(b.id)}" value="${esc(b.mood)}"></label></div>
-      <div class="actions"><button class="danger" data-delb="${esc(b.id)}">Удалить книгу</button></div></div></details>`;
-  }).join('') || '<p class="empty">Ничего не найдено по этим фильтрам.</p>';
+      <div class="body">${bookBody(b)}</div></details>`;
+  }).join('') + more;
+}
+
+let page = 1;
+const img = (b, cls) => b.image
+  ? `<img class="${cls}" src="${esc(safeUrl(b.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`
+  : `<div class="${cls}"></div>`;
+
+function bookBody(b) {  // таблица по магазинам, история цен, правка жанра
+  const tbl = [...b.offers].sort((a, c) => a.price - c.price).map(o => {
+    const d = delta(o), dt = d ? `<span class="${d < 0 ? 'down' : 'up'}">${d < 0 ? '↓' : '↑'} ${Math.abs(Math.round(d))}</span>` : '';
+    const ds = discount(o), hist = o.history.slice(-6).map(h => `${h[0].slice(5)}: ${Math.round(h[1])}`).join(' → ');
+    return `<tr><td><a href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener">${esc(o.shop)}</a>
+      <div class="hist">${esc(hist)}</div></td><td>${ds ? `<s>${Math.round(ds.ref)}</s> ` : ''}${money(o.price)} ${dt}${ds ? `<span class="badge">−${ds.pct}%</span>` : ''}</td>
+      <td>${o.inStock ? 'в наличии' : 'нет'}</td>
+      <td><button class="danger" data-delo="${esc(b.id)}" data-i="${b.offers.indexOf(o)}" aria-label="Удалить предложение">✕</button></td></tr>`;
+  }).join('');
+  return `<div class="scroll"><table><tr><th>Магазин</th><th>Цена</th><th>Наличие</th><th></th></tr>${tbl}</table></div>
+    <div class="grid2"><label>Жанр<input data-f="genre" data-id="${esc(b.id)}" value="${esc(b.genre)}"></label>
+    <label>Настроение (через запятую)<input data-f="mood" data-id="${esc(b.id)}" value="${esc(b.mood)}"></label></div>
+    <div class="actions"><button class="danger" data-delb="${esc(b.id)}">Удалить книгу</button></div>`;
+}
+
+function openBook(id) {
+  const b = db.books.find(x => x.id === id); if (!b) return;
+  $('bookBox').innerHTML = `<div class="bighead">${img(b, 'cover')}<div><h2>${esc(b.title)}</h2>
+    <div class="meta">${esc(b.author || 'автор не указан')}${b.publisher ? ', ' + esc(b.publisher) : ''}${b.year ? ', ' + b.year : ''}${b.isbn ? ', ISBN ' + esc(b.isbn) : ''}</div>
+    <div class="meta">${b.genre ? `<span class="tag ${isFan(b.genre) ? 'fan' : ''}">${esc(b.genre)}</span>` : ''}</div></div></div><div class="body">${bookBody(b)}</div>`;
+  if (!$('dBook').open) $('dBook').showModal();
 }
 
 /* ---------- события ---------- */
-['fAuthor', 'fMin', 'fMax'].forEach(id => $(id).addEventListener('input', render));
-['fPub', 'fGenre', 'fMood', 'fSort', 'fStock', 'fDisc'].forEach(id => $(id).addEventListener('change', render));
+const rerender = () => { page = 1; render(); };
+['fAuthor', 'fMin', 'fMax', 'fYFrom', 'fYTo'].forEach(id => $(id).addEventListener('input', rerender));
+['fPub', 'fGenre', 'fMood', 'fSort', 'fStock', 'fDisc', 'fView'].forEach(id => $(id).addEventListener('change', rerender));
 let qt; $('fQ').addEventListener('input', () => {
   clearTimeout(qt); qt = setTimeout(() => {
-    render(); const sg = suggest($('fQ').value), el = $('sugg');
+    rerender(); const sg = suggest($('fQ').value), el = $('sugg');
     el.hidden = !sg.length;
     el.innerHTML = sg.map(x => `<button type="button" data-q="${esc(x.txt)}">${esc(x.txt)} <span class="meta">· ${x.kind}</span></button>`).join('');
   }, 160);
 });
 document.addEventListener('click', e => {
   const q = e.target.closest('[data-q]'); if (!q) return;
-  $('fQ').value = q.dataset.q; $('sugg').hidden = true; render();
+  $('fQ').value = q.dataset.q; $('sugg').hidden = true; page = 1; render();
 });
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', e => e.target.closest('dialog').close()));
 
-$('list').addEventListener('click', e => {
-  const t = e.target;
-  if (t.id === 'bDemo') { demo(); }
-  if (t.dataset.delo) { const b = db.books.find(x => x.id === t.dataset.delo); b.offers.splice(+t.dataset.i, 1); if (!b.offers.length) db.books = db.books.filter(x => x !== b); save(); render(); }
-  if (t.dataset.delb && confirm('Удалить книгу со всеми ценами?')) { db.books = db.books.filter(x => x.id !== t.dataset.delb); save(); render(); }
-});
-$('list').addEventListener('change', e => {
+function onClick(e) {
+  const t = e.target.closest('button,[data-open]') || e.target;
+  if (t.id === 'bDemo') demo();
+  if (t.id === 'bMore') { page++; render(); }
+  if (t.dataset.open) openBook(t.dataset.open);
+  if (t.dataset.delo) { const b = db.books.find(x => x.id === t.dataset.delo); b.offers.splice(+t.dataset.i, 1); if (!b.offers.length) { db.books = db.books.filter(x => x !== b); $('dBook').close(); } save(); render(); if ($('dBook').open) openBook(b.id); }
+  if (t.dataset.delb && confirm('Удалить книгу со всеми ценами?')) { db.books = db.books.filter(x => x.id !== t.dataset.delb); $('dBook').close(); save(); render(); }
+}
+function onChange(e) {
   const t = e.target; if (!t.dataset.f) return;
   const b = db.books.find(x => x.id === t.dataset.id); b[t.dataset.f] = t.value.trim(); save();
   const open = [...document.querySelectorAll('details')].map(d => d.open); render();
   document.querySelectorAll('details').forEach((d, i) => d.open = open[i]);
-});
+}
+for (const id of ['list', 'bookBox']) { $(id).addEventListener('click', onClick); $(id).addEventListener('change', onChange); }
 
 $('bAdd').onclick = () => $('dAdd').showModal();
 $('aSave').onclick = () => {

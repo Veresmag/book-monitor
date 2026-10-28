@@ -1,6 +1,7 @@
 """Универсальный разбор страницы товара: JSON-LD (schema.org) + запасной вариант через meta-теги."""
 import json
 import re
+from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
@@ -24,6 +25,69 @@ def _name(v) -> str | None:
         names = [n for n in (_name(x) for x in v) if n]
         return ", ".join(names) or None
     return None
+
+
+def _year(node, soup):
+    """Год издания: JSON-LD, itemprop=datePublished или строка «Рік видання» в характеристиках."""
+    for k in ("datePublished", "copyrightYear", "releaseDate"):
+        m = re.search(r"(?:19|20)\d{2}", str((node or {}).get(k) or ""))
+        if m:
+            return int(m.group())
+    el = soup.find(attrs={"itemprop": "datePublished"})
+    if el:
+        m = re.search(r"(?:19|20)\d{2}", el.get("content") or el.get_text() or "")
+        if m:
+            return int(m.group())
+    text = soup.get_text(" ", strip=True)
+    m = re.search(r"(?:Рік\s+(?:видання|випуску|публікації)|Год\s+(?:издания|выпуска))\D{0,30}((?:19|20)\d{2})", text, re.I)
+    return int(m.group(1)) if m else None
+
+
+def _num(v):
+    if v is None:
+        return None
+    m = re.search(r"\d+(?:\.\d+)?", str(v).replace("\xa0", "").replace(" ", "").replace(",", "."))
+    return float(m.group()) if m else None
+
+
+def _microdata(soup):
+    """schema.org в виде атрибутов itemprop (старый, но частый способ разметки)."""
+    node = soup.find(attrs={"itemtype": re.compile(r"schema\.org/(Product|Book)", re.I)})
+    if not node:
+        return None
+
+    def prop(name):
+        el = node.find(attrs={"itemprop": name})
+        if not el:
+            return None
+        v = el.get("content") or el.get("href") or el.get_text(" ", strip=True)
+        return v.strip() if v else None
+
+    avail = prop("availability") or ""
+    return {
+        "title": prop("name"), "author": prop("author"), "publisher": prop("publisher") or prop("brand"),
+        "isbn": prop("isbn") or prop("gtin13"), "price": _num(prop("price")),
+        "currency": prop("priceCurrency") or "UAH",
+        "in_stock": not re.search(r"OutOfStock|SoldOut|Discontinued", avail, re.I),
+        "image": prop("image"), "old_price": None, "description": prop("description") or "",
+        "category": " > ".join(c for c in _crumbs(soup)[1:-1]),
+    }
+
+
+def diagnose(html: str) -> str:
+    """Короткое описание разметки страницы: чем она отличается от ожидаемой."""
+    soup = BeautifulSoup(html, "lxml")
+    types = []
+    for tag in soup.find_all("script", type="application/ld+json"):
+        try:
+            types += [str(n.get("@type")) for n in _walk(json.loads(tag.string or tag.get_text())) if n.get("@type")]
+        except (json.JSONDecodeError, TypeError):
+            types.append("битый JSON")
+    micro = [t.get("itemtype", "").rsplit("/", 1)[-1] for t in soup.find_all(attrs={"itemtype": True})][:3]
+    og = (soup.find("meta", property="og:type") or {}).get("content")
+    price = bool(soup.find("meta", property=re.compile("price", re.I)) or soup.find(attrs={"itemprop": "price"}))
+    return (f"ld+json: {sorted(set(types))[:5] or 'нет'}; microdata: {micro or 'нет'}; "
+            f"og:type: {og}; цена в разметке: {'да' if price else 'нет'}; {len(html) // 1024} КБ")
 
 
 def _crumbs(soup) -> list[str]:
@@ -113,22 +177,26 @@ def parse_product_page(html: str, url: str) -> dict | None:
             "category": " > ".join(c for c in _crumbs(soup)[1:-1]) or _name(product.get("category")) or "",
         }
     else:
-        # запасной вариант: Open Graph / product meta
-        def meta(prop):
-            m = soup.find("meta", property=prop) or soup.find("meta", attrs={"name": prop})
-            return m.get("content") if m else None
+        result = _microdata(soup)
+        if not result:
+            # запасной вариант: Open Graph / product meta
+            def meta(prop):
+                m = soup.find("meta", property=prop) or soup.find("meta", attrs={"name": prop}) \
+                    or soup.find("meta", attrs={"itemprop": prop})
+                return m.get("content") if m else None
 
-        raw = meta("product:price:amount")
-        try:
-            price = float(str(raw).replace(",", ".")) if raw else None
-        except ValueError:
-            price = None
-        result = {
-            "url": url, "title": meta("og:title"), "author": None, "publisher": None,
-            "isbn": None, "price": price, "currency": meta("product:price:currency") or "UAH",
-            "in_stock": True, "image": meta("og:image"),
-        }
+            price = _num(meta("product:price:amount") or meta("og:price:amount") or meta("price"))
+            result = {
+                "url": url, "title": meta("og:title"), "author": None, "publisher": None,
+                "isbn": None, "price": price, "currency": meta("product:price:currency") or "UAH",
+                "in_stock": True, "image": meta("og:image"), "old_price": _num(meta("product:original_price:amount")),
+                "description": meta("og:description") or "", "category": "",
+            }
+        result["url"] = url
 
+    result["year"] = _year(product, soup)
+    if result.get("image"):
+        result["image"] = urljoin(url, result["image"])
     if not result["title"] or result["price"] is None:
         return None
     return result

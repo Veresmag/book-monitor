@@ -3,14 +3,14 @@
 # Адреса с пометкой "проверить" нужно подтвердить отчётом: если главная не отвечает 200, домен другой.
 shops:
   # --- уже работают в сборе ---
-  - {slug: ksd,      name: КСД,            type: publisher, base_url: "https://ksd.ua",              enabled: true}
-  - {slug: vivat,    name: Vivat,          type: publisher, base_url: "https://vivat.com.ua",        enabled: true}
-  - {slug: starylev, name: Старого Лева,   type: publisher, base_url: "https://starylev.com.ua",     enabled: true}
+  - {slug: ksd,      name: КСД,            type: publisher, base_url: "https://ksd.ua",              enabled: true, product_url_regex: "^https?://[^/]+/product(/[^/]+){1}/?$"}
+  - {slug: vivat,    name: Vivat,          type: publisher, base_url: "https://vivat.com.ua",        enabled: true, product_url_regex: "^https?://[^/]+/product(/[^/]+){1}/?$"}
+  - {slug: starylev, name: Старого Лева,   type: publisher, base_url: "https://starylev.com.ua",     enabled: false}
 
   # --- издательства-кандидаты ---
   - {slug: apriori,  name: Апріорі,        type: publisher, base_url: "https://apriori-publishing.com", enabled: false}
   - {slug: astrolabium, name: Астролябія,  type: publisher, base_url: "https://astrolabium.com.ua",  enabled: false}
-  - {slug: folio,    name: Фоліо,          type: publisher, base_url: "https://folio.com.ua",        enabled: false}
+  - {slug: folio,    name: Фоліо,          type: publisher, base_url: "https://folio.com.ua",        enabled: true, product_url_regex: "^https?://[^/]+/books(/[^/]+){1}/?$"}
   - {slug: ranok,    name: Ранок,          type: publisher, base_url: "https://ranok.com.ua",        enabled: false}
   - {slug: abababa,  name: А-БА-БА-ГА-ЛА-МА-ГА, type: publisher, base_url: "https://ababahalamaha.com.ua", enabled: false}  # проверить
   - {slug: nashformat, name: Наш Формат,   type: publisher, base_url: "https://nashformat.ua",       enabled: false}  # проверить
@@ -24,6 +24,6 @@ shops:
   - {slug: yakaboo,  name: Yakaboo,        type: marketplace, base_url: "https://www.yakaboo.ua",    enabled: false}
   - {slug: readeat,  name: Readeat,        type: marketplace, base_url: "https://readeat.com",       enabled: false}
   - {slug: mbooks,   name: Mbooks,         type: marketplace, base_url: "https://mbooks.com.ua",     enabled: false}
-  - {slug: bookua,   name: Book.ua,        type: marketplace, base_url: "https://book.ua",            enabled: false}
+  - {slug: bookua,   name: Book.ua,        type: marketplace, base_url: "https://book.ua",            enabled: true, product_url_regex: "^https?://[^/]+/en(/[^/]+){2}/?$"}
   - {slug: sens,     name: Сенс,           type: marketplace, base_url: "https://sens.in.ua",         enabled: false}
   - {slug: bookye,   name: Книгарня Є,     type: marketplace, base_url: "https://book-ye.com.ua",    enabled: false}  # проверить

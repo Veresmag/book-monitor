@@ -52,7 +52,12 @@ def _discover_sitemaps(client, shop: dict, robots_text: str | None) -> list[str]
     if shop.get("sitemaps"):
         return shop["sitemaps"]
     found = re.findall(r"(?im)^sitemap:\s*(\S+)", robots_text or "")
-    return found or [urljoin(shop["base_url"], "/sitemap.xml")]
+    if found:
+        return found
+    # robots.txt не подсказал: пробуем типичные адреса
+    return [urljoin(shop["base_url"], p) for p in (
+        "/sitemap.xml", "/sitemap_index.xml", "/sitemap-index.xml", "/wp-sitemap.xml",
+        "/product-sitemap.xml", "/sitemap/sitemap.xml", "/sitemaps/sitemap.xml")]
 
 
 def crawl_shop(shop: dict, limit: int = 50, delay: float = 1.5, recheck_hours: int = 20) -> dict:
@@ -65,6 +70,7 @@ def crawl_shop(shop: dict, limit: int = 50, delay: float = 1.5, recheck_hours: i
         urls: list[str] = []
         for sm in _discover_sitemaps(client, shop, robots_text):
             urls += _sitemap_urls(client, sm)
+        urls = list(dict.fromkeys(urls))
         rx = re.compile(shop["product_url_regex"]) if shop.get("product_url_regex") else None
         if rx:
             urls = [u for u in urls if rx.search(u)]
