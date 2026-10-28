@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Книжный монитор</title>
+<style>
+  :root { --bg:#f2f4f3; --surface:#fff; --ink:#18232b; --muted:#5d6b73; --line:#d9dfdd;
+          --accent:#0d6b5c; --accent-ink:#fff; --price:#8a3b12; --down:#0d6b5c; --up:#b3261e; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#12181c; --surface:#1a2227; --ink:#e8edef; --muted:#98a6ad; --line:#2b363c;
+            --accent:#4cc2ad; --accent-ink:#0b1a17; --price:#f0a678; --down:#4cc2ad; --up:#ff8a80; } }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  a { color:var(--accent); }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  header { padding:12px 16px; background:var(--surface); border-bottom:1px solid var(--line);
+           display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; }
+  h1 { margin:0; font:600 1.15rem Georgia,"Iowan Old Style",serif; }
+  main { max-width:880px; margin:0 auto; padding:16px; }
+  .bar { display:flex; flex-wrap:wrap; gap:6px; }
+  button, .btn { font:inherit; font-size:.9rem; font-weight:600; padding:8px 12px; border:1px solid var(--line);
+           border-radius:6px; background:var(--surface); color:var(--ink); cursor:pointer; }
+  button.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  button.danger { color:var(--up); }
+  .filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
+  .filters .wide { grid-column:1/-1; }
+  label { display:grid; gap:4px; font-size:.82rem; color:var(--muted); }
+  input, select, textarea { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:6px;
+           background:var(--surface); color:var(--ink); width:100%; }
+  .check { display:flex; align-items:center; gap:8px; color:var(--ink); align-self:end; padding-bottom:8px; }
+  .check input { width:auto; }
+  .count { color:var(--muted); font-size:.88rem; margin:0 0 8px; }
+  details { border-top:1px solid var(--line); }
+  details:last-of-type { border-bottom:1px solid var(--line); }
+  summary { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; padding:12px 0; cursor:pointer; list-style:none; }
+  summary::-webkit-details-marker { display:none; }
+  .title { font-weight:600; }
+  .meta { color:var(--muted); font-size:.87rem; }
+  .price { color:var(--price); font-weight:700; font-size:1.1rem; white-space:nowrap; text-align:right; }
+  .tag { display:inline-block; font-size:.75rem; padding:1px 8px; border:1px solid var(--line); border-radius:999px; margin-right:4px; color:var(--muted); }
+  .body { padding:0 0 14px; display:grid; gap:12px; }
+  .scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; }
+  th, td { text-align:left; padding:6px 6px; border-bottom:1px solid var(--line); }
+  .hist { font-size:.82rem; color:var(--muted); }
+  .down { color:var(--down); } .up { color:var(--up); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  dialog { border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink);
+           width:min(520px,94vw); padding:18px; }
+  dialog::backdrop { background:rgba(0,0,0,.45); }
+  dialog h2 { margin:0 0 12px; font:600 1.1rem Georgia,serif; }
+  .form { display:grid; gap:10px; }
+  .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
+  .empty { padding:24px 0; color:var(--muted); }
+  .empty p { margin:0 0 10px; }
+  #toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--ink); color:var(--bg);
+           padding:9px 16px; border-radius:8px; font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90vw; }
+  #toast.on { opacity:1; }
+  .badge { display:inline-block; font-size:.75rem; font-weight:700; padding:1px 7px; border-radius:999px; background:var(--price); color:var(--bg); margin-left:6px; }
+  .tag.fan { border-color:var(--accent); color:var(--accent); }
+  .stats { font-size:.86rem; } .stats b { color:var(--ink); }
+  .sugg { display:flex; flex-wrap:wrap; gap:6px; }
+  .sugg button { font-weight:500; }
+  #dym { font-size:.92rem; } #dym button { padding:2px 8px; }
+  s { color:var(--muted); }
+  .help { font-size:.9rem; color:var(--muted); }
+  .help li { margin-bottom:6px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Книжный монитор</h1>
+  <div class="bar">
+    <button class="primary" id="bAdd">Добавить</button>
+    <button id="bPaste">Из закладки</button>
+    <button id="bImport">Импорт</button>
+    <button id="bExport">Экспорт</button>
+    <button id="bHelp">Как собирать цены</button>
+  </div>
+</header>
+<main>
+  <div class="filters">
+    <label class="wide">Поиск: название, автор, ISBN (можно по-русски и с опечатками)<input id="fQ" type="search" autocomplete="off"></label>
+    <div class="wide" id="dym" hidden></div><div class="wide sugg" id="sugg" hidden></div>
+    <label>Автор<input id="fAuthor"></label>
+    <label>Видавництво<select id="fPub"></select></label>
+    <label>Жанр<select id="fGenre"></select></label>
+    <label>Настроение<select id="fMood"></select></label>
+    <label>Цена от, грн<input id="fMin" inputmode="decimal"></label>
+    <label>Цена до, грн<input id="fMax" inputmode="decimal"></label>
+    <label>Сортировка<select id="fSort">
+      <option value="rel">По релевантности</option><option value="price">Сначала дешевле</option>
+      <option value="price_desc">Сначала дороже</option><option value="title">По названию</option>
+      <option value="disc">Больше скидка</option><option value="drop">Сильнее подешевели</option></select></label>
+    <label class="check"><input type="checkbox" id="fStock" checked>Только в наличии</label>
+    <label class="check"><input type="checkbox" id="fDisc">Только со скидкой</label>
+  </div>
+  <p class="count" id="count"></p>
+  <div id="list"></div>
+</main>
+
+<dialog id="dAdd"><h2>Добавить цену</h2><div class="form">
+  <label>Название *<input id="aTitle"></label>
+  <div class="grid2"><label>Автор<input id="aAuthor"></label><label>Видавництво<input id="aPub"></label></div>
+  <div class="grid2"><label>ISBN<input id="aIsbn"></label><label>Магазин *<input id="aShop" placeholder="Yakaboo"></label></div>
+  <div class="grid2"><label>Жанр<input id="aGenre"></label><label>Настроение (через запятую)<input id="aMood"></label></div>
+  <div class="grid2"><label>Цена, грн *<input id="aPrice" inputmode="decimal"></label><label>Ссылка<input id="aUrl" type="url"></label></div>
+  <label class="check"><input type="checkbox" id="aStock" checked>В наличии</label>
+  <div class="actions"><button data-close>Отмена</button><button class="primary" id="aSave">Сохранить</button></div>
+</div></dialog>
+
+<dialog id="dPaste"><h2>Вставить из закладки</h2><div class="form">
+  <p class="help">Нажми закладку на странице книги в магазине, затем вставь сюда (Ctrl+V). Можно вставить несколько подряд.</p>
+  <textarea id="pText" rows="7" placeholder='{"title":"…","price":349,…}'></textarea>
+  <div class="actions"><button data-close>Отмена</button><button class="primary" id="pSave">Добавить</button></div>
+</div></dialog>
+
+<dialog id="dHelp"><h2>Как собирать цены</h2>
+  <p class="help">Браузер не даёт странице самой ходить по чужим сайтам, поэтому цены попадают сюда тремя способами:</p>
+  <ol class="help">
+    <li><b>Закладка.</b> Перетащи эту ссылку на панель закладок: <a id="bm" href="#">+ В монитор</a>.
+      На странице книги в магазине нажми её: данные из карточки скопируются, потом нажми «Из закладки» и вставь.</li>
+    <li><b>Импорт CSV.</b> Колонки: title, author, publisher, isbn, shop, url, price, genre, mood.</li>
+    <li><b>Вручную</b> кнопкой «Добавить».</li>
+  </ol>
+  <p class="help">Чтобы обновить цену, снова нажми закладку на той же странице: в истории появится новая точка.
+  Данные хранятся в этом браузере, делай «Экспорт» для копии.</p>
+  <div class="actions"><button data-close class="primary">Понятно</button></div>
+</dialog>
+<input type="file" id="file" accept=".json,.csv" hidden>
+<div id="toast" role="status"></div>
+
+<script>
+const KEY = 'bookmonitor.v1';
+let db = { books: [] };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeUrl = u => /^https?:\/\//i.test(u || '') ? u : '#';
+const money = n => Math.round(n).toLocaleString('uk-UA') + ' грн';
+
+function load() { try { const r = localStorage.getItem(KEY); if (r) db = JSON.parse(r); } catch (e) {} }
+function save() { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { toast('Не удалось сохранить в браузере, сделай экспорт'); } }
+let tt; function toast(m) { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 2600); }
+
+const norm = s => (s || '').normalize('NFKC').toLowerCase().replace(/[’ʼ`´′]/g, "'").replace(/[«»“”„"']/g, '')
+  .replace(/(^|\s)(том|книга|кн|частина|ч)\.?\s*(\d+)/g, '$1т$3').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+const cleanIsbn = s => { const d = (s || '').replace(/[^0-9Xx]/g, ''); return d.length === 10 || d.length === 13 ? d.toUpperCase() : ''; };
+
+function ingest(it, day0) {
+  const title = String(it.title || '').trim();
+  const price = parseFloat(String(it.price).replace(',', '.').replace(/\s/g, ''));
+  if (!title || !isFinite(price)) return false;
+  const isbn = cleanIsbn(it.isbn), tk = norm(title) + '|' + norm(it.author);
+  let b = isbn && db.books.find(x => x.isbn === isbn);
+  if (!b) b = db.books.find(x => x.tk === tk && (!isbn || !x.isbn));
+  if (!b) { b = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title, tk, author: '', publisher: '', isbn: '', genre: '', mood: '', offers: [] }; db.books.push(b); }
+  for (const k of ['author', 'publisher', 'genre', 'mood']) if (!b[k] && it[k]) b[k] = String(it[k]).trim();
+  if (isbn && !b.isbn) b.isbn = isbn;
+  const shop = String(it.shop || '—').trim(), url = it.url || '';
+  let o = b.offers.find(x => url ? x.url === url : x.shop === shop);
+  if (!o) { o = { shop, url, price, inStock: true, history: [] }; b.offers.push(o); }
+  o.shop = shop; if (url) o.url = url; o.price = price; o.oldPrice = parseFloat(it.oldPrice) || 0;
+  o.inStock = it.inStock !== false && it.inStock !== 'false' && it.inStock !== '0';
+  const day = day0 || new Date().toISOString().slice(0, 10), last = o.history[o.history.length - 1];
+  if (last && last[0] === day) last[1] = price; else if (!last || last[1] !== price) o.history.push([day, price]);
+  return true;
+}
+
+function ingestMany(arr) {
+  let ok = 0;
+  for (const x of arr) {
+    if (x && Array.isArray(x.offers)) { for (const o of x.offers) { ok += ingest({ ...x, ...o }) ? 1 : 0; (o.history || []).length; } }
+    else ok += ingest(x) ? 1 : 0;
+  }
+  save(); render(); return ok;
+}
+
+function parseCsv(text) {
+  const rows = []; let row = [], cur = '', q = false;
+  const sep = (text.split('\n')[0].match(/;/g) || []).length > (text.split('\n')[0].match(/,/g) || []).length ? ';' : ',';
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; } else if (c === '"') q = false; else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === sep) { row.push(cur); cur = ''; }
+    else if (c === '\n') { row.push(cur); rows.push(row); row = []; cur = ''; }
+    else if (c !== '\r') cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  const head = (rows.shift() || []).map(h => h.trim().replace(/^\uFEFF/, '').toLowerCase());
+  return rows.filter(r => r.some(Boolean)).map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] || '').trim()])));
+}
+
+/* ---------- отображение ---------- */
+const uniq = f => [...new Set(db.books.flatMap(b => String(b[f] || '').split(',').map(s => s.trim()).filter(Boolean)))].sort((a, b) => a.localeCompare(b, 'uk'));
+function fillSelect(id, values) {
+  const el = $(id), cur = el.value;
+  el.innerHTML = '<option value="">Все</option>' + values.map(v => `<option>${esc(v)}</option>`).join('');
+  if (values.includes(cur)) el.value = cur;
+}
+
+function delta(o) {
+  const h = o.history; if (h.length < 2) return 0;
+  return h[h.length - 1][1] - h[h.length - 2][1];
+}
+
+/*SEARCH-START*/
+const SKM = { 'ё':'е','ы':'и','э':'е','є':'е','і':'и','ї':'и','ґ':'г','ъ':'','ь':'','й':'и' };
+const LAT2 = [['sch','щ'],['sh','ш'],['ch','ч'],['zh','ж'],['th','т'],['ph','ф'],['ck','к'],['kh','х'],['ee','и'],['oo','у'],['ya','я'],['yu','ю'],['yo','о'],['ts','ц']];
+const LAT1 = { a:'а',b:'б',c:'к',d:'д',e:'е',f:'ф',g:'г',h:'х',i:'и',j:'дж',k:'к',l:'л',m:'м',n:'н',o:'о',p:'п',q:'к',r:'р',s:'с',t:'т',u:'у',v:'в',w:'в',x:'кс',y:'и',z:'з' };
+let ALIASES = [['властелин колец','володар перснів'],['игра престолов','гра престолів'],['ведьмак','відьмак'],['хоббит','гобіт'],['гарри поттер','гаррі поттер'],['дюна','дюна']];
+/* «скелет» слова: русские и украинские буквы, латиница и двойные согласные сводятся к одному виду */
+function skel(s) {
+  s = (s || '').toLowerCase().normalize('NFKC').replace(/[’ʼ`´′']/g, '');
+  if (/[a-z]/.test(s)) { for (const [a, b] of LAT2) s = s.split(a).join(b); s = s.replace(/[a-z]/g, c => LAT1[c]); }
+  s = s.replace(/[ёыэєіїґъьй]/g, c => SKM[c]).replace(/(.)\1+/g, '$1');
+  return s.replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+}
+const toks = s => skel(s).split(' ').filter(Boolean);
+function dist(a, b, max) {  // расстояние Дамерау-Левенштейна (учитывает перестановку соседних букв)
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  const m = a.length, n = b.length; let p2 = null, p1 = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const c = [i];
+    for (let j = 1; j <= n; j++) {
+      let v = Math.min(p1[j] + 1, c[j - 1] + 1, p1[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, p2[j - 2] + 1);
+      c[j] = v;
+    }
+    p2 = p1; p1 = c;
+  }
+  return p1[n];
+}
+const tol = n => n <= 3 ? 0 : n <= 6 ? 1 : 2;
+function tokScore(q, t) {
+  if (q === t) return 3;
+  if (q.length >= 2 && t.startsWith(q)) return 2.5;
+  const k = tol(q.length); if (!k) return 0;
+  const d = dist(q, t, k); if (d <= k) return 2 - 0.5 * d;
+  if (q.length >= 4) { const d2 = dist(q, t.slice(0, q.length), k); if (d2 <= k) return 1.5 - 0.5 * d2; }
+  return 0;
+}
+function bookScore(qt, bt) {  // все слова запроса должны найтись (с допуском на опечатки)
+  let sum = 0;
+  for (const q of qt) { let best = 0; for (const t of bt) { const v = tokScore(q, t); if (v > best) best = v; if (best === 3) break; } if (!best) return 0; sum += best; }
+  return sum;
+}
+function queries(raw) {  // сам запрос + варианты через словарь «русское название → украинское»
+  const qs = skel(raw); if (!qs) return [];
+  const out = [qs.split(' ')];
+  for (const [k, v] of ALIASES) { const sk = skel(k); if (qs.includes(sk)) out.push(qs.replace(sk, skel(v)).split(' ')); }
+  return out;
+}
+const tokCache = new Map();
+function tokensOf(b) {
+  const key = b.title + '|' + b.author + '|' + b.isbn, c = tokCache.get(b.id);
+  if (c && c.key === key) return c.t;
+  const t = toks(`${b.title} ${b.author} ${b.isbn}`); tokCache.set(b.id, { key, t }); return t;
+}
+function vocab() {  // слово-скелет -> как оно написано в каталоге
+  const v = new Map();
+  for (const b of db.books) for (const w of `${b.title} ${b.author}`.split(/\s+/)) { const k = skel(w); if (k && !v.has(k)) v.set(k, w.replace(/[.,;:«»"()]/g, '')); }
+  return v;
+}
+function suggest(raw) {  // подсказки: авторы и названия, похожие на запрос
+  const qq = queries(raw); if (!qq.length) return [];
+  const seen = new Set(), out = [];
+  for (const b of db.books) for (const [txt, kind, w] of [[b.author, 'автор', .5], [b.title, 'книга', 0]]) {
+    if (!txt || seen.has(kind + txt)) continue; seen.add(kind + txt);
+    const sc = Math.max(...qq.map(q => bookScore(q, toks(txt))));
+    if (sc) out.push({ txt, kind, sc: sc + w });
+  }
+  return out.sort((a, b) => b.sc - a.sc).slice(0, 6);
+}
+function didYouMean(raw) {  // «возможно, вы имели в виду…»
+  const V = vocab(), words = raw.trim().split(/\s+/); let changed = false;
+  const fixed = words.map(w => {
+    const k = skel(w); if (k.length < 4 || V.has(k)) return w;
+    for (const key of V.keys()) if (key.startsWith(k)) return w;  // слово ещё набирается
+    let best = null, bd = 9; const m = tol(k.length);
+    for (const [key, surf] of V) { const d = dist(k, key, m); if (d < bd && d <= m) { bd = d; best = surf; } }
+    if (best) changed = true; return best || w;
+  });
+  return changed ? fixed.join(' ') : '';
+}
+/*SEARCH-END*/
+
+const FANT = '★ Все фэнтези', DAY = 864e5;
+function discount(o) {  // старая цена из карточки магазина или максимум за 60 дней
+  const cut = new Date(Date.now() - 60 * DAY).toISOString().slice(0, 10);
+  let ref = o.oldPrice > o.price ? o.oldPrice : 0;
+  const hm = Math.max(0, ...(o.history || []).filter(h => h[0] >= cut).map(h => h[1]));
+  if (hm > o.price && hm > ref) ref = hm;
+  return ref > o.price && (ref - o.price) / ref >= 0.05 ? { ref, pct: Math.round((ref - o.price) / ref * 100) } : null;
+}
+const isFan = g => /фентез|фэнтез|fantasy/i.test(g || '');
+
+function render() {
+  fillSelect('fPub', uniq('publisher')); fillSelect('fGenre', [FANT, ...uniq('genre')]); fillSelect('fMood', uniq('mood'));
+  const qq = queries($('fQ').value), au = norm($('fAuthor').value), pub = $('fPub').value, ge = $('fGenre').value, mo = $('fMood').value;
+  const min = parseFloat($('fMin').value.replace(',', '.')), max = parseFloat($('fMax').value.replace(',', '.'));
+  const stock = $('fStock').checked, onlyDisc = $('fDisc').checked, sort = $('fSort').value;
+
+  let rows = [];
+  for (const b of db.books) {
+    let sc = 0;
+    if (qq.length) { sc = Math.max(...qq.map(q => bookScore(q, tokensOf(b)))); if (!sc) continue; }
+    if (au && !norm(b.author).includes(au)) continue;
+    if (pub && b.publisher !== pub) continue;
+    if (ge === FANT ? !isFan(b.genre) : (ge && b.genre !== ge)) continue;
+    if (mo && !String(b.mood).split(',').map(s => s.trim()).includes(mo)) continue;
+    const offs = b.offers.filter(o => (!stock || o.inStock) && (isNaN(min) || o.price >= min) && (isNaN(max) || o.price <= max));
+    if (!offs.length) continue;
+    const best = offs.reduce((a, c) => c.price < a.price ? c : a), worst = offs.reduce((a, c) => c.price > a.price ? c : a);
+    const discs = offs.map(discount).filter(Boolean);
+    if (onlyDisc && !discs.length) continue;
+    rows.push({ b, offs, best, worst, sc, avg: offs.reduce((a, o) => a + o.price, 0) / offs.length,
+      pct: Math.max(0, ...discs.map(d => d.pct)), drop: Math.min(0, ...b.offers.map(delta)) });
+  }
+  const cmp = { rel: (a, c) => (c.sc - a.sc) || (a.best.price - c.best.price), price: (a, c) => a.best.price - c.best.price,
+    price_desc: (a, c) => c.best.price - a.best.price, title: (a, c) => a.b.title.localeCompare(c.b.title, 'uk'),
+    disc: (a, c) => c.pct - a.pct, drop: (a, c) => a.drop - c.drop }[sort];
+  rows.sort(cmp);
+
+  const dym = $('fQ').value.trim().length > 3 ? didYouMean($('fQ').value) : '';
+  $('dym').hidden = !dym;
+  if (dym) $('dym').innerHTML = `Возможно, вы искали: <button type="button" data-q="${esc(dym)}">${esc(dym)}</button>`;
+  $('count').textContent = db.books.length ? `Показано ${rows.length} из ${db.books.length}` : '';
+  if (!db.books.length) {
+    $('list').innerHTML = `<div class="empty"><p>Пока пусто. Добавь книги закладкой, импортом CSV или вручную.</p>
+      <button id="bDemo">Загрузить демо-данные</button></div>`;
+    return;
+  }
+  $('list').innerHTML = rows.map(({ b, offs, best, worst, avg, pct }) => {
+    const moods = String(b.mood).split(',').map(s => s.trim()).filter(Boolean).map(m => `<span class="tag">${esc(m)}</span>`).join('');
+    const tbl = [...b.offers].sort((a, c) => a.price - c.price).map(o => {
+      const d = delta(o), dt = d ? `<span class="${d < 0 ? 'down' : 'up'}">${d < 0 ? '↓' : '↑'} ${Math.abs(Math.round(d))}</span>` : '';
+      const ds = discount(o), hist = o.history.slice(-6).map(h => `${h[0].slice(5)}: ${Math.round(h[1])}`).join(' → ');
+      return `<tr><td><a href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener">${esc(o.shop)}</a>
+        <div class="hist">${esc(hist)}</div></td><td>${ds ? `<s>${Math.round(ds.ref)}</s> ` : ''}${money(o.price)} ${dt}${ds ? `<span class="badge">−${ds.pct}%</span>` : ''}</td>
+        <td>${o.inStock ? 'в наличии' : 'нет'}</td>
+        <td><button class="danger" data-delo="${esc(b.id)}" data-i="${b.offers.indexOf(o)}" aria-label="Удалить предложение">✕</button></td></tr>`;
+    }).join('');
+    const stats = offs.length > 1
+      ? `от <b>${Math.round(best.price)}</b> (${esc(best.shop)}) · средняя <b>${Math.round(avg)}</b> · до <b>${Math.round(worst.price)}</b> (${esc(worst.shop)})`
+      : esc(best.shop);
+    return `<details><summary><div><div class="title">${esc(b.title)}</div>
+      <div class="meta">${esc(b.author || 'автор не указан')}${b.publisher ? ', ' + esc(b.publisher) : ''}</div>
+      <div class="meta">${b.genre ? `<span class="tag ${isFan(b.genre) ? 'fan' : ''}">${esc(b.genre)}</span>` : ''}${moods}</div>
+      <div class="meta stats">${stats}</div></div>
+      <div class="price">${money(best.price)}${pct ? `<span class="badge">−${pct}%</span>` : ''}</div></summary>
+      <div class="body"><div class="scroll"><table><tr><th>Магазин</th><th>Цена</th><th>Наличие</th><th></th></tr>${tbl}</table></div>
+      <div class="grid2"><label>Жанр<input data-f="genre" data-id="${esc(b.id)}" value="${esc(b.genre)}"></label>
+      <label>Настроение (через запятую)<input data-f="mood" data-id="${esc(b.id)}" value="${esc(b.mood)}"></label></div>
+      <div class="actions"><button class="danger" data-delb="${esc(b.id)}">Удалить книгу</button></div></div></details>`;
+  }).join('') || '<p class="empty">Ничего не найдено по этим фильтрам.</p>';
+}
+
+/* ---------- события ---------- */
+['fAuthor', 'fMin', 'fMax'].forEach(id => $(id).addEventListener('input', render));
+['fPub', 'fGenre', 'fMood', 'fSort', 'fStock', 'fDisc'].forEach(id => $(id).addEventListener('change', render));
+let qt; $('fQ').addEventListener('input', () => {
+  clearTimeout(qt); qt = setTimeout(() => {
+    render(); const sg = suggest($('fQ').value), el = $('sugg');
+    el.hidden = !sg.length;
+    el.innerHTML = sg.map(x => `<button type="button" data-q="${esc(x.txt)}">${esc(x.txt)} <span class="meta">· ${x.kind}</span></button>`).join('');
+  }, 160);
+});
+document.addEventListener('click', e => {
+  const q = e.target.closest('[data-q]'); if (!q) return;
+  $('fQ').value = q.dataset.q; $('sugg').hidden = true; render();
+});
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', e => e.target.closest('dialog').close()));
+
+$('list').addEventListener('click', e => {
+  const t = e.target;
+  if (t.id === 'bDemo') { demo(); }
+  if (t.dataset.delo) { const b = db.books.find(x => x.id === t.dataset.delo); b.offers.splice(+t.dataset.i, 1); if (!b.offers.length) db.books = db.books.filter(x => x !== b); save(); render(); }
+  if (t.dataset.delb && confirm('Удалить книгу со всеми ценами?')) { db.books = db.books.filter(x => x.id !== t.dataset.delb); save(); render(); }
+});
+$('list').addEventListener('change', e => {
+  const t = e.target; if (!t.dataset.f) return;
+  const b = db.books.find(x => x.id === t.dataset.id); b[t.dataset.f] = t.value.trim(); save();
+  const open = [...document.querySelectorAll('details')].map(d => d.open); render();
+  document.querySelectorAll('details').forEach((d, i) => d.open = open[i]);
+});
+
+$('bAdd').onclick = () => $('dAdd').showModal();
+$('aSave').onclick = () => {
+  const ok = ingest({ title: $('aTitle').value, author: $('aAuthor').value, publisher: $('aPub').value, isbn: $('aIsbn').value,
+    shop: $('aShop').value, genre: $('aGenre').value, mood: $('aMood').value, price: $('aPrice').value, url: $('aUrl').value, inStock: $('aStock').checked });
+  if (!ok) return toast('Нужны название и цена (числом)');
+  save(); render(); $('dAdd').close(); ['aTitle','aAuthor','aPub','aIsbn','aGenre','aMood','aPrice','aUrl'].forEach(i => $(i).value = ''); toast('Сохранено');
+};
+$('bPaste').onclick = () => { $('pText').value = ''; $('dPaste').showModal(); $('pText').focus(); };
+$('pSave').onclick = () => {
+  const txt = $('pText').value.trim(); let items = [];
+  try { const j = JSON.parse(txt); items = Array.isArray(j) ? j : [j]; }
+  catch (e) { items = txt.split(/\n(?=\s*\{)/).map(s => { try { return JSON.parse(s); } catch (e2) { return null; } }).filter(Boolean); }
+  const n = items.length ? ingestMany(items) : 0;
+  if (!n) return toast('Не удалось разобрать данные');
+  $('dPaste').close(); toast(`Добавлено: ${n}`);
+};
+$('bHelp').onclick = () => $('dHelp').showModal();
+$('bImport').onclick = () => $('file').click();
+$('file').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return; const text = await f.text(); e.target.value = '';
+  try { const items = f.name.toLowerCase().endsWith('.csv') ? parseCsv(text) : (j => Array.isArray(j) ? j : (j.books || [j]))(JSON.parse(text));
+    toast(`Импортировано: ${ingestMany(items)}`); } catch (err) { toast('Файл не удалось прочитать'); }
+};
+$('bExport').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(db, null, 1)], { type: 'application/json' }));
+  a.download = 'knyzhkovyi-monitor-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); URL.revokeObjectURL(a.href);
+};
+
+/* ---------- закладка (читает JSON-LD с открытой страницы магазина) ---------- */
+const BOOKMARKLET = `(function(){var o=null;document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s){try{(function w(n){if(!n||typeof n!=='object')return;if(Array.isArray(n)){n.forEach(w);return}var t=[].concat(n['@type']||[]);if(!o&&(t.indexOf('Product')>-1||t.indexOf('Book')>-1))o=n;Object.values(n).forEach(w)})(JSON.parse(s.textContent))}catch(e){}});if(!o){alert('На странице не найдены данные о товаре (JSON-LD)');return}var nm=function(v){return Array.isArray(v)?v.map(nm).join(', '):v&&typeof v==='object'?nm(v.name):v||''};var f=[].concat(o.offers||[])[0]||{};var r={title:nm(o.name),author:nm(o.author),publisher:nm(o.publisher)||nm(o.brand),isbn:o.isbn||o.gtin13||'',price:parseFloat(String(f.price||f.lowPrice||'').replace(',','.')),inStock:!/OutOfStock|SoldOut/i.test(f.availability||''),shop:location.hostname.replace(/^www\\./,''),url:location.href};var j=JSON.stringify(r);(navigator.clipboard?navigator.clipboard.writeText(j):Promise.reject()).then(function(){alert('Скопировано: '+r.title+' — '+r.price+'. Теперь вставь в мониторе.')},function(){prompt('Скопируй (Ctrl+C):',j)})})()`;
+$('bm').href = 'javascript:' + encodeURIComponent(BOOKMARKLET);
+$('bm').addEventListener('click', e => { e.preventDefault(); toast('Перетащи ссылку на панель закладок, не кликай'); });
+
+function demo() {
+  ingestMany([
+    { title: 'Володар Кілець. Книга 1', author: 'Дж. Р. Р. Толкін', publisher: 'КСД', isbn: '9786171200011', shop: 'Демо А', url: 'https://demo.invalid/a1', price: 389, genre: 'Фентезі', mood: 'епічне, серйозне' },
+    { title: 'Володар Кілець. Том 1', author: 'Дж. Р. Р. Толкін', shop: 'Демо Б', url: 'https://demo.invalid/b1', price: 349 },
+    { title: 'Кармінові береги', author: 'Ліа Арден', publisher: 'Старого Лева', shop: 'Демо А', url: 'https://demo.invalid/a2', price: 360, genre: 'Романтичне фентезі', mood: 'затишне, романтичне' },
+    { title: 'Місто Бастіон', author: 'Роберт Джексон Беннетт', publisher: 'Vivat', shop: 'Демо Б', url: 'https://demo.invalid/b3', price: 470, genre: 'Фентезі', mood: 'похмуре' },
+  ]);
+  toast('Демо-данные добавлены (цены выдуманные)');
+}
+
+async function loadRemote() {
+  try {
+    try { const ar = await fetch('aliases.json'); if (ar.ok) ALIASES = ALIASES.concat(await ar.json()); } catch (e) {}
+    const r = await fetch('data.json', { cache: 'no-cache' }); if (!r.ok) return;
+    const remote = await r.json(); let n = 0;
+    for (const b of remote.books || []) for (const o of b.offers || []) {
+      const h = (o.history || []).slice().sort((x, y) => x[0] < y[0] ? -1 : 1);
+      if (!ingest({ ...b, ...o }, h.length ? h[h.length - 1][0] : undefined)) continue;
+      const off = db.books.flatMap(x => x.offers).find(x => x.url === o.url);
+      const m = new Map([...(off.history || []), ...h]);
+      off.history = [...m.entries()].sort((x, y) => x[0] < y[0] ? -1 : 1); n++;
+    }
+    if (n) { save(); render(); toast('Данные обновлены: ' + String(remote.updated || '').slice(0, 10)); }
+  } catch (e) { /* файл открыт локально или data.json ещё нет, это нормально */ }
+}
+load(); render(); loadRemote();
+</script>
+</body>
+</html>

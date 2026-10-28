@@ -1,0 +1,54 @@
+# Адреса и регулярки для магазинов нужно проверить на реальных сайтах.
+# product_url_regex — по какому шаблону отбирать страницы книг из sitemap
+# (если не задан, берутся все ссылки из sitemap: на первых тестах ставь --limit).
+# sitemaps — явные адреса sitemap; если не заданы, ищем в robots.txt и /sitemap.xml.
+shops:
+  - slug: ksd
+    name: КСД
+    type: publisher
+    base_url: https://ksd.ua
+    enabled: true
+
+  - slug: vivat
+    name: Vivat
+    type: publisher
+    base_url: https://vivat.com.ua
+    enabled: true
+
+  - slug: starylev
+    name: Старого Лева
+    type: publisher
+    base_url: https://starylev.com.ua
+    enabled: true
+
+  # TODO: проверь домены и включи
+  - slug: nebo
+    name: Небо Букс
+    type: publisher
+    base_url: https://CHANGE-ME.example
+    enabled: false
+
+  - slug: apriori
+    name: Апріорі
+    type: publisher
+    base_url: https://CHANGE-ME.example
+    enabled: false
+
+  - slug: rm
+    name: РМ
+    type: publisher
+    base_url: https://CHANGE-ME.example
+    enabled: false
+
+  # Второй этап: мультивендорные магазины (тут появится реальная разница в ценах)
+  - slug: yakaboo
+    name: Yakaboo
+    type: marketplace
+    base_url: https://www.yakaboo.ua
+    enabled: false
+
+  - slug: readeat
+    name: Readeat
+    type: marketplace
+    base_url: https://readeat.com
+    enabled: false
