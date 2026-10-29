@@ -3,6 +3,8 @@ import json
 import re
 from urllib.parse import urljoin
 
+from .formats import detect as detect_format
+
 from bs4 import BeautifulSoup
 
 
@@ -52,6 +54,30 @@ def _clean_desc(t, min_len=0):
     if len(t) < min_len:
         return ""
     return t[:1500].rsplit(" ", 1)[0] + "…" if len(t) > 1500 else t
+
+
+_LABELS = {
+    "author": r"автор(?:и)?(?:\s+книги)?", "publisher": r"видавництво|видавець", "isbn": r"isbn(?:-1[03])?",
+}
+
+
+def _chars(soup):
+    """Характеристики на странице («Автор: …», «ISBN: …»), в том числе таблицей из двух столбцов."""
+    for t in soup(["script", "style", "noscript"]):
+        t.decompose()
+    lines = [x.strip() for x in soup.get_text("\n", strip=True).split("\n") if x.strip()][:3000]
+    out = {}
+    for i, line in enumerate(lines):
+        for key, rx in _LABELS.items():
+            if key in out:
+                continue
+            if re.fullmatch(rf"(?:{rx})\s*[:：]?", line, re.I) and i + 1 < len(lines) and len(lines[i + 1]) < 200:
+                out[key] = lines[i + 1]
+                continue
+            m = re.match(rf"(?:{rx})\s*[:：]\s*(.{{1,200}})$", line, re.I)
+            if m:
+                out[key] = m.group(1).strip()
+    return out
 
 
 def _num(v):
@@ -206,6 +232,8 @@ def parse_product_page(html: str, url: str) -> dict | None:
         result["url"] = url
 
     result["year"] = _year(product, soup)
+    result["format"] = detect_format(result.get("title"), url, result.get("category"),
+                                     str(product.get("bookFormat", "")) if product else "")
     # og:description у магазинов часто рекламный текст, поэтому берём его только если он длинный
     result["description"] = _clean_desc(result.get("description"), 120 if not product else 0)
     if not result.get("image"):
@@ -213,6 +241,11 @@ def parse_product_page(html: str, url: str) -> dict | None:
         result["image"] = og.get("content") if og else None
     if result.get("image"):
         result["image"] = urljoin(url, result["image"])
+    if not (result.get("author") and result.get("isbn")):  # дозаполняем из характеристик на странице
+        chars = _chars(soup)
+        for k in ("author", "isbn", "publisher"):
+            if not result.get(k) and chars.get(k):
+                result[k] = chars[k]
     if not result["title"] or result["price"] is None:
         return None
     return result

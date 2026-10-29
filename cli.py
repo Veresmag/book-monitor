@@ -28,7 +28,7 @@ def load_state() -> None:
                     store.import_offer(conn, sid, {
                         "url": o["url"], "title": b["title"], "author": b.get("author"),
                         "publisher": b.get("publisher"), "isbn": b.get("isbn"), "genre": b.get("genre"),
-                        "mood": b.get("mood"), "image": b.get("image"), "year": b.get("year"), "description": b.get("description"), "price": o["price"], "old_price": o.get("oldPrice"), "in_stock": o.get("inStock", True),
+                        "mood": b.get("mood"), "image": b.get("image"), "year": b.get("year"), "description": b.get("description"), "format": b.get("format"), "price": o["price"], "old_price": o.get("oldPrice"), "in_stock": o.get("inStock", True),
                     }, o.get("history", []), o.get("seen"))
         if os.path.exists(MISSES_JSON):
             for url, ts in json.load(open(MISSES_JSON, encoding="utf-8")).items():
@@ -53,7 +53,7 @@ def export_state() -> None:
             if offers:
                 books.append({"title": b["title"], "author": b["author"] or "", "publisher": b["publisher"] or "",
                               "isbn": b["isbn"] or "", "genre": b["genre"] or "", "mood": b["mood"] or "",
-                              "image": b["image"] or "", "year": b["year"] or 0, "description": b["description"] or "",
+                              "image": b["image"] or "", "year": b["year"] or 0, "description": b["description"] or "", "format": b["fmt"] or "",
                               "offers": offers})
         misses = {r["url"]: r["ts"][:10] for r in conn.execute("SELECT url,ts FROM misses ORDER BY url")}
     dump = lambda x: json.dumps(x, ensure_ascii=False, separators=(",", ":"))
@@ -133,8 +133,8 @@ def cmd_analyze(args) -> None:
     from app.scraper_jsonld import diagnose, parse_product_page
 
     random.seed(7)
-    rows = ["| Магазин | Главная | Файлов sitemap | Проверено страниц | Книг распознано | С ISBN | С категорией | Фильтр адреса книги |",
-            "|---|---|---|---|---|---|---|---|"]
+    rows = ["| Магазин | Главная | Файлов sitemap | Проверено страниц | Книг распознано | С ISBN | С категорией | С автором | С годом | Фильтр адреса книги |",
+            "|---|---|---|---|---|---|---|---|---|---|"]
     notes = []
     with httpx.Client(headers={"User-Agent": crawler.UA}, timeout=25, follow_redirects=True) as c:
         for shop in crawler.load_shops():
@@ -158,7 +158,7 @@ def cmd_analyze(args) -> None:
                 rows.append(f"| {name} | {home} | 0 | | | | | sitemap не найден или пуст |")
                 continue
             sample = random.sample(urls, min(args.sample, len(urls)))
-            ok = isbn = cat = 0
+            ok = isbn = cat = auth = yr = 0
             shapes_ok, shapes_all, good, bad = Counter(), Counter(), [], []
             for url in sample:
                 segs = [x for x in urlparse(url).path.split("/") if x]
@@ -171,6 +171,8 @@ def cmd_analyze(args) -> None:
                     ok += 1; shapes_ok[shape] += 1
                     isbn += 1 if prod.get("isbn") else 0
                     cat += 1 if prod.get("category") else 0
+                    auth += 1 if prod.get("author") else 0
+                    yr += 1 if prod.get("year") else 0
                     if len(good) < 2:
                         good.append(f"{prod['title']} — {prod['price']:.0f}")
                 elif len(bad) < 2:
@@ -182,7 +184,7 @@ def cmd_analyze(args) -> None:
                     hint = "`^https?://[^/]+/%s(/[^/]+){%d}/?$`" % (re.escape(first), n - 1)
                 else:
                     hint = "книги в корне сайта, нужен другой признак"
-            rows.append(f"| {name} | {home} | {nfiles} | {len(sample)} | {ok} | {isbn} | {cat} | {hint} |")
+            rows.append(f"| {name} | {home} | {nfiles} | {len(sample)} | {ok} | {isbn} | {cat} | {auth} | {yr} | {hint} |")
             notes.append(f"- **{name}**: пример книги: {good[0] if good else 'нет'}; не распознано: {'; '.join(bad) if bad else 'нет'}"
                          + (f"; sitemap-файлы: {', '.join(smlog[:8])}" if smlog else ""))
     text = "\n".join(rows) + "\n\n" + "\n".join(notes)

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS books (
     image TEXT,
     year INTEGER,
     description TEXT,
+    fmt TEXT,
     genre TEXT,          -- заполнится на этапе жанровой классификации
     mood TEXT,           -- теги настроения (этап анализа отзывов)
     rating REAL,         -- рейтинг (этап рейтингов)

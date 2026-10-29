@@ -136,6 +136,7 @@
           <option value="title">По названию</option><option value="new">Сначала новые</option><option value="rating">По рейтингу</option>
           <option value="disc">Больше скидка</option><option value="drop">Сильнее подешевели</option></select></label>
         <label>Вид<select id="fView"><option value="grid">Плитка с обложками</option><option value="list">Список</option></select></label>
+        <label>Формат<select id="fFormat"><option value="paper">Бумажные</option><option value="ebook">Электронные</option><option value="audio">Аудио</option><option value="all">Все форматы</option></select></label>
         <label class="check"><input type="checkbox" id="fStock" checked>Только в наличии</label>
         <label class="check"><input type="checkbox" id="fDisc">Только со скидкой</label>
       </aside>
@@ -345,19 +346,23 @@ function discount(o) {  // старая цена из карточки мага�
   if (hm > o.price && hm > ref) ref = hm;
   return ref > o.price && (ref - o.price) / ref >= 0.05 ? { ref, pct: Math.round((ref - o.price) / ref * 100) } : null;
 }
+const fmtOf = b => b.format || (/електронн[а-яіїєґ]*\s+книг|электронн[а-яё]*\s+книг|e-?book/i.test(b.title) ? 'ebook' : /аудіо|аудио|audiobook/i.test(b.title) ? 'audio'
+  : b.offers.some(o => /e-?book|epub|audio/i.test(o.url || '')) ? (b.offers.some(o => /audio/i.test(o.url || '')) ? 'audio' : 'ebook') : 'paper');
+const fmtTag = b => { const f = fmtOf(b); return f === 'paper' ? '' : `<span class="tag">${f === 'ebook' ? 'e-book' : 'аудіо'}</span>`; };
 const isFan = g => /фентез|фэнтез|fantasy/i.test(g || '');
 
 function render() {
   fillSelect('fPub', uniq('publisher')); fillSelect('fGenre', [FANT, ...uniq('genre')]); fillSelect('fMood', uniq('mood'));
   const qq = queries($('fQ').value), au = norm($('fAuthor').value), pub = $('fPub').value, ge = $('fGenre').value, mo = $('fMood').value;
   const min = parseFloat($('fMin').value.replace(',', '.')), max = parseFloat($('fMax').value.replace(',', '.'));
-  const y1 = parseInt($('fYFrom').value), y2 = parseInt($('fYTo').value), view = $('fView').value, stock = $('fStock').checked, onlyDisc = $('fDisc').checked, sort = $('fSort').value;
+  const fmtSel = $('fFormat').value, y1 = parseInt($('fYFrom').value), y2 = parseInt($('fYTo').value), view = $('fView').value, stock = $('fStock').checked, onlyDisc = $('fDisc').checked, sort = $('fSort').value;
 
   let rows = [];
   for (const b of db.books) {
     let sc = 0;
     if (qq.length) { sc = Math.max(...qq.map(q => bookScore(q, tokensOf(b)))); if (!sc) continue; }
     if (au && !norm(b.author).includes(au)) continue;
+    if (fmtSel !== 'all' && fmtOf(b) !== fmtSel) continue;
     if (!isNaN(y1) && !(b.year >= y1)) continue;
     if (!isNaN(y2) && !(b.year && b.year <= y2)) continue;
     if (pub && b.publisher !== pub) continue;
@@ -391,7 +396,7 @@ function render() {
   if (!rows.length) { $('list').innerHTML = '<p class="empty">Ничего не найдено по этим фильтрам.</p>'; return; }
   if (view === 'grid') {
     $('list').innerHTML = `<div class="grid">${shown.map(({ b, best, pct }) => `<button type="button" class="card" data-open="${esc(b.id)}">${img(b, 'cover')}
-      <div class="title">${esc(b.title)}</div><div class="meta">${esc(b.author || '')}${b.year ? ' · ' + b.year : ''}</div>${stars(b)}
+      <div class="title">${esc(b.title)}</div><div class="meta">${esc(b.author || '')}${b.year ? ' · ' + b.year : ''}</div>${stars(b)}${fmtTag(b)}
       <div class="price left">${money(best.price)}${pct ? `<span class="badge">−${pct}%</span>` : ''}</div></button>`).join('')}</div>${more}`;
     return;
   }
@@ -459,7 +464,7 @@ function openBook(id) {
   const b = db.books.find(x => x.id === id); if (!b) return;
   const offs = [...b.offers].sort((a, c) => a.price - c.price), avail = offs.filter(o => o.inStock), best = avail[0] || offs[0];
   const ds = discount(best), ps = offs.map(o => o.price), lo = offs[0], hi = offs[offs.length - 1];
-  const tags = (b.genre ? `<span class="tag ${isFan(b.genre) ? 'fan' : ''}">${esc(b.genre)}</span>` : '') + String(b.mood).split(',').map(s => s.trim()).filter(Boolean).map(m => `<span class="tag">${esc(m)}</span>`).join('');
+  const tags = fmtTag(b) + (b.genre ? `<span class="tag ${isFan(b.genre) ? 'fan' : ''}">${esc(b.genre)}</span>` : '') + String(b.mood).split(',').map(s => s.trim()).filter(Boolean).map(m => `<span class="tag">${esc(m)}</span>`).join('');
   $('bookBox').innerHTML = `<div class="bk"><div class="bk-side">${img(b, 'cover')}
     <div class="buy"><div class="meta">${avail.length ? 'Лучшая цена' : 'Нет в наличии, последняя цена'}</div>
       <div class="big">${money(best.price)}${ds ? `<span class="badge">−${ds.pct}%</span>` : ''}</div>
@@ -501,7 +506,7 @@ function route(noScroll) {
 /* ---------- события ---------- */
 const rerender = () => { page = 1; render(); };
 ['fAuthor', 'fMin', 'fMax', 'fYFrom', 'fYTo'].forEach(id => $(id).addEventListener('input', rerender));
-['fPub', 'fGenre', 'fMood', 'fSort', 'fStock', 'fDisc', 'fView'].forEach(id => $(id).addEventListener('change', rerender));
+['fPub', 'fGenre', 'fMood', 'fSort', 'fStock', 'fDisc', 'fView', 'fFormat'].forEach(id => $(id).addEventListener('change', rerender));
 let qt; $('fQ').addEventListener('input', () => {
   clearTimeout(qt); qt = setTimeout(() => {
     if (location.hash === '#publishers') location.hash = '#catalog';
