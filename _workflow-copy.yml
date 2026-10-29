@@ -7,6 +7,10 @@ on:
       limit:
         description: "Сколько страниц на магазин обработать"
         default: "600"
+      refresh:
+        description: "Сначала обновить уже собранные книги (обложки, год, цены)"
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency: crawl
@@ -25,7 +29,7 @@ jobs:
         run: python cli.py probe
         continue-on-error: true
       - name: Сбор цен
-        run: python cli.py daily --limit ${{ github.event.inputs.limit || '600' }}
+        run: python cli.py daily --limit ${{ github.event.inputs.limit || '600' }} ${{ github.event.inputs.refresh == 'true' && '--refresh' || '' }}
       - name: Сохранить результат
         run: |
           git config user.name "github-actions[bot]"

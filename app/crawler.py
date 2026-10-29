@@ -60,7 +60,8 @@ def _discover_sitemaps(client, shop: dict, robots_text: str | None) -> list[str]
         "/product-sitemap.xml", "/sitemap/sitemap.xml", "/sitemaps/sitemap.xml")]
 
 
-def crawl_shop(shop: dict, limit: int = 50, delay: float = 1.5, recheck_hours: int = 20) -> dict:
+def crawl_shop(shop: dict, limit: int = 50, delay: float = 1.5, recheck_hours: int = 20,
+               refresh: bool = False) -> dict:
     stats = {"seen": 0, "saved": 0, "skipped": 0, "failed": 0}
     with httpx.Client(headers={"User-Agent": UA}, timeout=30, follow_redirects=True) as client:
         robots_text = _get_text(client, urljoin(shop["base_url"], "/robots.txt"))
@@ -87,13 +88,13 @@ def crawl_shop(shop: dict, limit: int = 50, delay: float = 1.5, recheck_hours: i
 
             def due(u):  # (когда проверяли, порог свежести)
                 if u in seen:
-                    return seen[u], cut_offer
+                    return seen[u], ("~" if refresh else cut_offer)  # refresh: проверять независимо от свежести
                 if u in miss:
                     return miss[u], cut_miss
                 return "", cut_offer
 
             # сначала ни разу не виденные, потом самые давние: так за несколько дней обходится весь каталог
-            for url in sorted(urls, key=lambda u: due(u)[0]):
+            for url in sorted(urls, key=lambda u: (0 if (refresh and u in seen) else 1, due(u)[0])):
                 if stats["seen"] >= limit:
                     break
                 ts, cut = due(url)

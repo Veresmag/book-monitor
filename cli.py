@@ -68,14 +68,14 @@ def export_state() -> None:
     print(f"экспорт: книг {len(books)}, пустых страниц {len(misses)}")
 
 
-def crawl_all(limit: int, delay: float, only: str | None = None) -> None:
+def crawl_all(limit: int, delay: float, only: str | None = None, refresh: bool = False) -> None:
     from app import crawler
     for shop in crawler.load_shops():
         if only and shop["slug"] != only:
             continue
         if not shop.get("enabled", True) and not only:
             continue
-        print(shop["slug"], crawler.crawl_shop(shop, limit=limit, delay=delay))
+        print(shop["slug"], crawler.crawl_shop(shop, limit=limit, delay=delay, refresh=refresh))
 
 
 def cmd_probe(args) -> None:
@@ -202,8 +202,9 @@ def main() -> None:
     for name, fn in (("daily", None), ("crawl", None)):
         p = sub.add_parser(name)
         p.add_argument("--shop"); p.add_argument("--limit", type=int, default=600)
+        p.add_argument("--refresh", action="store_true", help="сначала обновить уже собранные книги")
         p.add_argument("--delay", type=float, default=1.5)
-        p.set_defaults(fn=(lambda a: (load_state(), crawl_all(a.limit, a.delay, a.shop), export_state())))
+        p.set_defaults(fn=(lambda a: (load_state(), crawl_all(a.limit, a.delay, a.shop, a.refresh), export_state())))
     sub.add_parser("export").set_defaults(fn=lambda a: export_state())
     sub.add_parser("load").set_defaults(fn=lambda a: load_state())
     a = ap.parse_args(); a.fn(a)

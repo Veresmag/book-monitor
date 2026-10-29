@@ -195,6 +195,9 @@ def parse_product_page(html: str, url: str) -> dict | None:
         result["url"] = url
 
     result["year"] = _year(product, soup)
+    if not result.get("image"):
+        og = soup.find("meta", property="og:image")
+        result["image"] = og.get("content") if og else None
     if result.get("image"):
         result["image"] = urljoin(url, result["image"])
     if not result["title"] or result["price"] is None:

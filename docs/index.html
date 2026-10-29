@@ -5,110 +5,145 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Книжный монитор</title>
 <style>
-  :root { --bg:#f2f4f3; --surface:#fff; --ink:#18232b; --muted:#5d6b73; --line:#d9dfdd;
-          --accent:#0d6b5c; --accent-ink:#fff; --price:#8a3b12; --down:#0d6b5c; --up:#b3261e; }
+  :root { --bg:#f3f5f7; --surface:#fff; --ink:#14202b; --muted:#5b6b78; --line:#dce2e8; --accent:#0e7a68; --accent-ink:#fff;
+          --price:#b4471a; --down:#0e7a68; --up:#c0332b; --star:#e8a800;
+          --shadow:0 1px 2px rgba(20,32,43,.06),0 6px 20px rgba(20,32,43,.07); }
   @media (prefers-color-scheme: dark) {
-    :root { --bg:#12181c; --surface:#1a2227; --ink:#e8edef; --muted:#98a6ad; --line:#2b363c;
-            --accent:#4cc2ad; --accent-ink:#0b1a17; --price:#f0a678; --down:#4cc2ad; --up:#ff8a80; } }
+    :root { --bg:#0f151a; --surface:#172028; --ink:#e8eef2; --muted:#93a3ae; --line:#26323b; --accent:#4fd1b8; --accent-ink:#082019;
+            --price:#f2a77c; --down:#4fd1b8; --up:#ff8f86; --star:#f2b822;
+            --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35); } }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
   a { color:var(--accent); }
   :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  header { padding:12px 16px; background:var(--surface); border-bottom:1px solid var(--line);
-           display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; }
-  h1 { margin:0; font:600 1.15rem Georgia,"Iowan Old Style",serif; }
-  main { max-width:880px; margin:0 auto; padding:16px; }
-  .bar { display:flex; flex-wrap:wrap; gap:6px; }
-  button, .btn { font:inherit; font-size:.9rem; font-weight:600; padding:8px 12px; border:1px solid var(--line);
-           border-radius:6px; background:var(--surface); color:var(--ink); cursor:pointer; }
-  button.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
+  [hidden] { display:none !important; }
+  .wrap { max-width:1320px; margin:0 auto; padding:0 20px; }
+  .top { position:sticky; top:0; z-index:20; background:var(--surface); border-bottom:1px solid var(--line); }
+  .bar1 { display:flex; align-items:center; gap:16px; padding-top:12px; padding-bottom:8px; }
+  .logo { font:700 1.25rem Georgia,"Iowan Old Style",serif; color:var(--ink); text-decoration:none; white-space:nowrap; display:flex; align-items:center; }
+  .logo i { font-style:normal; display:inline-grid; place-items:center; width:30px; height:30px; border-radius:8px; background:var(--accent); color:var(--accent-ink); margin-right:8px; font-size:1rem; }
+  .search { flex:1; max-width:640px; margin:0 auto; }
+  .search input { border-radius:999px; padding:10px 18px; }
+  nav.wrap { display:flex; gap:4px; }
+  nav a { padding:8px 14px; text-decoration:none; color:var(--muted); font-weight:600; border-bottom:3px solid transparent; }
+  nav a.on { color:var(--ink); border-color:var(--accent); }
+  .menu { position:relative; }
+  .menu summary { list-style:none; cursor:pointer; width:40px; height:40px; display:grid; place-items:center; border:1px solid var(--line); border-radius:10px; font-size:1.3rem; }
+  .menu summary::-webkit-details-marker { display:none; }
+  .menu-pop { position:absolute; right:0; top:46px; background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:8px; display:grid; gap:2px; min-width:210px; }
+  .menu-pop button { text-align:left; border:0; background:none; }
+  .menu-pop button:hover { background:var(--bg); }
+  main { padding-top:18px; padding-bottom:48px; }
+  .head { display:flex; align-items:baseline; flex-wrap:wrap; gap:12px; margin-bottom:14px; }
+  h1 { margin:0; font:700 1.6rem Georgia,"Iowan Old Style",serif; }
+  .count { color:var(--muted); font-size:.9rem; }
+  .chip { font-size:.8rem; padding:3px 10px; border-radius:999px; }
+  .layout { display:grid; grid-template-columns:260px 1fr; gap:26px; align-items:start; }
+  .side { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; display:grid; gap:12px; position:sticky; top:112px; }
+  .only-m { display:none; }
+  @media (max-width:899px) { .layout { grid-template-columns:1fr; } .side { display:none; position:static; } .side.open { display:grid; }
+    .only-m { display:inline-block; } .search { order:3; flex-basis:100%; max-width:none; } .bar1 { flex-wrap:wrap; } .menu { margin-left:auto; } }
+  label { display:grid; gap:4px; font-size:.8rem; color:var(--muted); }
+  input, select, textarea { font:inherit; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--bg); color:var(--ink); width:100%; }
+  button, .btn { font:inherit; font-size:.9rem; font-weight:600; padding:8px 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--ink); cursor:pointer; }
+  button.primary, .btn.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
   button.danger { color:var(--up); }
-  .filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
-  .filters .wide { grid-column:1/-1; }
-  label { display:grid; gap:4px; font-size:.82rem; color:var(--muted); }
-  input, select, textarea { font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:6px;
-           background:var(--surface); color:var(--ink); width:100%; }
-  .check { display:flex; align-items:center; gap:8px; color:var(--ink); align-self:end; padding-bottom:8px; }
+  .check { display:flex; align-items:center; gap:8px; color:var(--ink); font-size:.92rem; }
   .check input { width:auto; }
-  .count { color:var(--muted); font-size:.88rem; margin:0 0 8px; }
-  details { border-top:1px solid var(--line); }
-  details:last-of-type { border-bottom:1px solid var(--line); }
-  summary { display:grid; grid-template-columns:auto 1fr auto; gap:12px; align-items:center; padding:12px 0; cursor:pointer; list-style:none; }
-  summary::-webkit-details-marker { display:none; }
-  .title { font-weight:600; }
-  .meta { color:var(--muted); font-size:.87rem; }
-  .price { color:var(--price); font-weight:700; font-size:1.1rem; white-space:nowrap; text-align:right; }
-  .tag { display:inline-block; font-size:.75rem; padding:1px 8px; border:1px solid var(--line); border-radius:999px; margin-right:4px; color:var(--muted); }
-  .body { padding:0 0 14px; display:grid; gap:12px; }
-  .scroll { overflow-x:auto; }
-  table { width:100%; border-collapse:collapse; font-size:.92rem; }
-  th, td { text-align:left; padding:6px 6px; border-bottom:1px solid var(--line); }
-  .hist { font-size:.82rem; color:var(--muted); }
-  .down { color:var(--down); } .up { color:var(--up); }
-  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  dialog { border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink);
-           width:min(520px,94vw); padding:18px; }
-  dialog::backdrop { background:rgba(0,0,0,.45); }
-  dialog h2 { margin:0 0 12px; font:600 1.1rem Georgia,serif; }
-  .form { display:grid; gap:10px; }
-  .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
-  .empty { padding:24px 0; color:var(--muted); }
-  .empty p { margin:0 0 10px; }
-  #toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--ink); color:var(--bg);
-           padding:9px 16px; border-radius:8px; font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90vw; }
-  #toast.on { opacity:1; }
-  .thumb { width:44px; height:64px; object-fit:cover; border-radius:3px; background:var(--line); display:block; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(145px,1fr)); gap:16px 12px; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .sugg { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
+  .sugg button { font-weight:500; border-radius:999px; }
+  #dym { font-size:.92rem; margin-bottom:8px; } #dym button { padding:2px 10px; }
+  /* обложки */
+  .cv { position:relative; overflow:hidden; aspect-ratio:2/3; border-radius:7px; background:hsl(var(--h) 28% 32%); color:#fff;
+        display:flex; align-items:flex-end; padding:10px; font:600 .82rem/1.25 Georgia,serif; }
+  .cv span { display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
+  .cv img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .cv.thumb { width:48px; padding:0; border-radius:4px; } .cv.thumb span, .cv.mini span { display:none; }
+  .cv.mini { padding:0; border-radius:4px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:24px 16px; }
   .card { text-align:left; background:none; border:0; padding:0; color:inherit; font-weight:400; display:grid; gap:3px; align-content:start; }
-  .card .cover { width:100%; aspect-ratio:2/3; object-fit:cover; border-radius:4px; background:var(--line); display:block; }
-  .card .title { font-size:.92rem; line-height:1.3; }
-  .bighead { display:flex; gap:14px; margin-bottom:12px; }
-  .bighead .cover { width:110px; aspect-ratio:2/3; object-fit:cover; border-radius:4px; background:var(--line); flex:none; }
-  .bighead h2 { margin:0 0 4px; }
-  .badge { display:inline-block; font-size:.75rem; font-weight:700; padding:1px 7px; border-radius:999px; background:var(--price); color:var(--bg); margin-left:6px; }
+  .card .cv { box-shadow:var(--shadow); transition:transform .15s; } .card:hover .cv { transform:translateY(-3px); }
+  .card .title { font-size:.95rem; line-height:1.3; margin-top:6px; }
+  .title { font-weight:600; } .meta { color:var(--muted); font-size:.86rem; }
+  .price { color:var(--price); font-weight:700; font-size:1.08rem; white-space:nowrap; text-align:right; } .price.left { text-align:left; }
+  .badge { display:inline-block; font-size:.72rem; font-weight:700; padding:1px 7px; border-radius:999px; background:var(--price); color:var(--surface); margin-left:6px; vertical-align:middle; }
+  .tag { display:inline-block; font-size:.74rem; padding:1px 9px; border:1px solid var(--line); border-radius:999px; margin:0 4px 4px 0; color:var(--muted); }
   .tag.fan { border-color:var(--accent); color:var(--accent); }
-  .stats { font-size:.86rem; } .stats b { color:var(--ink); }
-  .sugg { display:flex; flex-wrap:wrap; gap:6px; }
-  .sugg button { font-weight:500; }
-  #dym { font-size:.92rem; } #dym button { padding:2px 8px; }
-  s { color:var(--muted); }
-  .help { font-size:.9rem; color:var(--muted); }
-  .help li { margin-bottom:6px; }
+  .stats b { color:var(--ink); } s { color:var(--muted); }
+  .st { background:linear-gradient(90deg,var(--star) var(--p),var(--line) var(--p)); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing:2px; }
+  .rate { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:8px 0; } .rate .st { font-size:1.2rem; } .rate.sm { margin:0; font-size:.85rem; }
+  /* список */
+  details { border-top:1px solid var(--line); } details:last-of-type { border-bottom:1px solid var(--line); }
+  summary { display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; padding:12px 0; cursor:pointer; list-style:none; }
+  summary::-webkit-details-marker { display:none; }
+  .body { padding:0 0 14px; display:grid; gap:12px; } .scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; } th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); }
+  .hist { font-size:.8rem; color:var(--muted); } .down { color:var(--down); } .up { color:var(--up); }
+  .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
+  .empty { padding:28px 0; color:var(--muted); }
+  /* видавництва */
+  .pubgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
+  .pub { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px; text-align:left; color:inherit; font-weight:400; display:grid; gap:8px; box-shadow:var(--shadow); }
+  .pub:hover { border-color:var(--accent); } .mosaic { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .head input { width:260px; max-width:100%; }
+  /* окна */
+  dialog { border:1px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); width:min(520px,94vw); padding:20px; }
+  dialog::backdrop { background:rgba(0,0,0,.5); }
+  dialog h2 { margin:0 0 12px; font:700 1.1rem Georgia,serif; } .form { display:grid; gap:10px; } .help { font-size:.9rem; color:var(--muted); } .help li { margin-bottom:6px; }
+  #dBook { width:min(980px,96vw); max-height:92vh; padding:26px; overflow:auto; }
+  .x { position:absolute; right:12px; top:12px; width:36px; height:36px; padding:0; border-radius:50%; }
+  .bk { display:grid; grid-template-columns:210px 1fr; gap:28px; }
+  @media (max-width:700px) { .bk { grid-template-columns:1fr; } .bk-side { max-width:200px; } }
+  .bk h2 { margin:0 28px 4px 0; font:700 1.6rem/1.2 Georgia,serif; } .bk h3 { margin:24px 0 8px; font:700 1.05rem Georgia,serif; }
+  .buy { margin-top:14px; display:grid; gap:8px; } .big { font-size:1.7rem; font-weight:800; color:var(--price); }
+  .btn { display:inline-block; text-align:center; text-decoration:none; padding:11px 14px; }
+  .statbox { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; } .statbox div { background:var(--bg); border-radius:10px; padding:8px 12px; font-size:.82rem; color:var(--muted); }
+  .statbox b { display:block; font-size:1.05rem; color:var(--ink); }
+  .rv { margin:0 0 12px; padding:10px 14px; background:var(--bg); border-radius:10px; border-left:3px solid var(--accent); } .rv p { margin:4px 0; }
+  #toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:8px; font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90vw; z-index:50; }
+  #toast.on { opacity:1; }
 </style>
 </head>
 <body>
-<header>
-  <h1>Книжный монитор</h1>
-  <div class="bar">
-    <button class="primary" id="bAdd">Добавить</button>
-    <button id="bPaste">Из закладки</button>
-    <button id="bImport">Импорт</button>
-    <button id="bExport">Экспорт</button>
-    <button id="bHelp">Как собирать цены</button>
+<header class="top">
+  <div class="wrap bar1">
+    <a class="logo" href="#catalog"><i>К</i>Книжный монитор</a>
+    <div class="search"><input id="fQ" type="search" autocomplete="off" placeholder="Назва, автор, ISBN: можна російською й з помилками"></div>
+    <details class="menu"><summary aria-label="Меню">⋯</summary><div class="menu-pop">
+      <button id="bAdd">Добавить книгу</button><button id="bPaste">Вставить из закладки</button>
+      <button id="bImport">Импорт CSV / JSON</button><button id="bExport">Экспорт</button><button id="bHelp">Как собирать цены</button>
+    </div></details>
   </div>
+  <nav class="wrap"><a href="#catalog">Каталог</a><a href="#publishers">Видавництва</a><a href="#deals">Знижки</a></nav>
 </header>
-<main>
-  <div class="filters">
-    <label class="wide">Поиск: название, автор, ISBN (можно по-русски и с опечатками)<input id="fQ" type="search" autocomplete="off"></label>
-    <div class="wide" id="dym" hidden></div><div class="wide sugg" id="sugg" hidden></div>
-    <label>Автор<input id="fAuthor"></label>
-    <label>Видавництво<select id="fPub"></select></label>
-    <label>Жанр<select id="fGenre"></select></label>
-    <label>Настроение<select id="fMood"></select></label>
-    <label>Цена от, грн<input id="fMin" inputmode="decimal"></label>
-    <label>Цена до, грн<input id="fMax" inputmode="decimal"></label>
-    <label>Сортировка<select id="fSort">
-      <option value="rel">По релевантности</option><option value="price">Сначала дешевле</option>
-      <option value="price_desc">Сначала дороже</option><option value="title">По названию</option>
-      <option value="new">Сначала новые</option><option value="disc">Больше скидка</option><option value="drop">Сильнее подешевели</option></select></label>
-    <label class="check"><input type="checkbox" id="fStock" checked>Только в наличии</label>
-    <label class="check"><input type="checkbox" id="fDisc">Только со скидкой</label>
-    <label>Год от<input id="fYFrom" inputmode="numeric" placeholder="2015"></label>
-    <label>Год до<input id="fYTo" inputmode="numeric" placeholder="2026"></label>
-    <label>Вид<select id="fView"><option value="grid">Плитка с обложками</option><option value="list">Список</option></select></label>
-  </div>
-  <p class="count" id="count"></p>
-  <div id="list"></div>
+<main class="wrap">
+  <div id="dym" hidden></div><div class="sugg" id="sugg" hidden></div>
+  <section id="vCatalog">
+    <div class="head"><h1 id="catTitle">Каталог</h1><span class="count" id="count"></span><button class="only-m" id="bFilt">Фильтры</button></div>
+    <div class="layout">
+      <aside class="side" id="side">
+        <label>Автор<input id="fAuthor"></label>
+        <label>Видавництво<select id="fPub"></select></label>
+        <label>Жанр<select id="fGenre"></select></label>
+        <label>Настроение<select id="fMood"></select></label>
+        <div class="two"><label>Цена от<input id="fMin" inputmode="decimal"></label><label>до, грн<input id="fMax" inputmode="decimal"></label></div>
+        <div class="two"><label>Год от<input id="fYFrom" inputmode="numeric" placeholder="2015"></label><label>Год до<input id="fYTo" inputmode="numeric" placeholder="2026"></label></div>
+        <label>Сортировка<select id="fSort">
+          <option value="rel">По релевантности</option><option value="price">Сначала дешевле</option><option value="price_desc">Сначала дороже</option>
+          <option value="title">По названию</option><option value="new">Сначала новые</option><option value="rating">По рейтингу</option>
+          <option value="disc">Больше скидка</option><option value="drop">Сильнее подешевели</option></select></label>
+        <label>Вид<select id="fView"><option value="grid">Плитка с обложками</option><option value="list">Список</option></select></label>
+        <label class="check"><input type="checkbox" id="fStock" checked>Только в наличии</label>
+        <label class="check"><input type="checkbox" id="fDisc">Только со скидкой</label>
+      </aside>
+      <div id="list"></div>
+    </div>
+  </section>
+  <section id="vPub" hidden>
+    <div class="head"><h1>Видавництва</h1><input id="pubQ" type="search" placeholder="Знайти видавництво"></div>
+    <div class="pubgrid" id="pubList"></div>
+  </section>
 </main>
 
 <dialog id="dAdd"><h2>Добавить цену</h2><div class="form">
@@ -121,7 +156,7 @@
   <div class="actions"><button data-close>Отмена</button><button class="primary" id="aSave">Сохранить</button></div>
 </div></dialog>
 
-<dialog id="dBook"><div id="bookBox"></div><div class="actions"><button data-close>Закрыть</button></div></dialog>
+<dialog id="dBook"><button class="x" data-close aria-label="Закрыть">✕</button><div id="bookBox"></div></dialog>
 
 <dialog id="dPaste"><h2>Вставить из закладки</h2><div class="form">
   <p class="help">Нажми закладку на странице книги в магазине, затем вставь сюда (Ctrl+V). Можно вставить несколько подряд.</p>
@@ -336,13 +371,14 @@ function render() {
   }
   const cmp = { rel: (a, c) => (c.sc - a.sc) || (a.best.price - c.best.price), price: (a, c) => a.best.price - c.best.price,
     price_desc: (a, c) => c.best.price - a.best.price, title: (a, c) => a.b.title.localeCompare(c.b.title, 'uk'),
-    new: (a, c) => (c.b.year || 0) - (a.b.year || 0) || (a.best.price - c.best.price), disc: (a, c) => c.pct - a.pct, drop: (a, c) => a.drop - c.drop }[sort];
+    new: (a, c) => (c.b.year || 0) - (a.b.year || 0) || (a.best.price - c.best.price), rating: (a, c) => ((c.b.rating && c.b.rating.value) || 0) - ((a.b.rating && a.b.rating.value) || 0), disc: (a, c) => c.pct - a.pct, drop: (a, c) => a.drop - c.drop }[sort];
   rows.sort(cmp);
 
   const dym = $('fQ').value.trim().length > 3 ? didYouMean($('fQ').value) : '';
   $('dym').hidden = !dym;
   if (dym) $('dym').innerHTML = `Возможно, вы искали: <button type="button" data-q="${esc(dym)}">${esc(dym)}</button>`;
   $('count').textContent = db.books.length ? `Показано ${rows.length} из ${db.books.length}` : '';
+  $('catTitle').innerHTML = pub ? `${esc(pub)} <button class="chip" id="bClearPub">✕ все видавництва</button>` : 'Каталог';
   if (!db.books.length) {
     $('list').innerHTML = `<div class="empty"><p>Пока пусто. Добавь книги закладкой, импортом CSV или вручную.</p>
       <button id="bDemo">Загрузить демо-данные</button></div>`;
@@ -353,8 +389,8 @@ function render() {
   if (!rows.length) { $('list').innerHTML = '<p class="empty">Ничего не найдено по этим фильтрам.</p>'; return; }
   if (view === 'grid') {
     $('list').innerHTML = `<div class="grid">${shown.map(({ b, best, pct }) => `<button type="button" class="card" data-open="${esc(b.id)}">${img(b, 'cover')}
-      <div class="title">${esc(b.title)}</div><div class="meta">${esc(b.author || '')}${b.year ? ' · ' + b.year : ''}</div>
-      <div class="price" style="text-align:left">${money(best.price)}${pct ? `<span class="badge">−${pct}%</span>` : ''}</div></button>`).join('')}</div>${more}`;
+      <div class="title">${esc(b.title)}</div><div class="meta">${esc(b.author || '')}${b.year ? ' · ' + b.year : ''}</div>${stars(b)}
+      <div class="price left">${money(best.price)}${pct ? `<span class="badge">−${pct}%</span>` : ''}</div></button>`).join('')}</div>${more}`;
     return;
   }
   $('list').innerHTML = shown.map(({ b, offs, best, worst, avg, pct }) => {
@@ -372,31 +408,90 @@ function render() {
 }
 
 let page = 1;
-const img = (b, cls) => b.image
-  ? `<img class="${cls}" src="${esc(safeUrl(b.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`
-  : `<div class="${cls}"></div>`;
+const hue = s => { let h = 0; for (const c of s || '') h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+const img = (b, cls) => `<div class="cv ${cls}" style="--h:${hue(b.title)}"><span>${esc(b.title)}</span>${b.image
+  ? `<img src="${esc(safeUrl(b.image))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}</div>`;
 
-function bookBody(b) {  // таблица по магазинам, история цен, правка жанра
-  const tbl = [...b.offers].sort((a, c) => a.price - c.price).map(o => {
+const ext = (u, t) => `<a href="${esc(safeUrl(u))}" target="_blank" rel="noopener">${t}</a>`;
+function stars(b) {  // маленький рейтинг на плитке
+  return b.rating && b.rating.value ? `<div class="rate sm"><span class="st" style="--p:${Math.min(100, b.rating.value / 5 * 100)}%">★★★★★</span> ${Number(b.rating.value).toFixed(1)}</div>` : '';
+}
+function ratingBlock(b) {
+  const q = encodeURIComponent((b.isbn || `${b.title} ${b.author || ''}`).trim());
+  const links = `${ext('https://www.goodreads.com/search?q=' + q, 'Goodreads')} · ${ext('https://hardcover.app/search?q=' + q, 'Hardcover')}`;
+  const r = b.rating;
+  if (r && r.value) return `<div class="rate"><span class="st" style="--p:${Math.min(100, r.value / 5 * 100)}%">★★★★★</span> <b>${Number(r.value).toFixed(1)}</b>
+    <span class="meta">${r.count ? Number(r.count).toLocaleString('uk-UA') + ' оценок · ' : ''}${esc(r.source || '')}</span></div><div class="meta">Смотреть также: ${links}</div>`;
+  return `<div class="rate"><span class="meta">Оценок пока нет. Посмотреть на: ${links}</span></div>`;
+}
+function reviewsBlock(b) {
+  const rv = b.reviews || [];
+  if (!rv.length) return '<p class="meta">Отзывов пока нет: они появятся, когда подключим источник оценок.</p>';
+  return rv.slice(0, 8).map(r => {
+    const t = String(r.text || ''), tr = l => `https://translate.google.com/?sl=auto&tl=${l}&op=translate&text=${encodeURIComponent(t.slice(0, 1500))}`;
+    const uk = String(r.lang || '').toLowerCase().startsWith('uk');
+    return `<blockquote class="rv"><div class="meta">${esc(r.source || '')}${r.rating ? ' · ★ ' + esc(r.rating) : ''}${r.lang ? ' · ' + esc(r.lang) : ''}</div>
+      <p>${esc(t.length > 500 ? t.slice(0, 500) + '…' : t)}</p>
+      <div class="meta">${uk ? '' : `Перевод: ${ext(tr('uk'), 'на украинский')} · ${ext(tr('ru'), 'на русский')}`}${r.url ? ' · ' + ext(r.url, 'оригинал') : ''}</div></blockquote>`;
+  }).join('');
+}
+function shopsTable(b) {
+  const rows = [...b.offers].sort((a, c) => a.price - c.price).map(o => {
     const d = delta(o), dt = d ? `<span class="${d < 0 ? 'down' : 'up'}">${d < 0 ? '↓' : '↑'} ${Math.abs(Math.round(d))}</span>` : '';
     const ds = discount(o), hist = o.history.slice(-6).map(h => `${h[0].slice(5)}: ${Math.round(h[1])}`).join(' → ');
-    return `<tr><td><a href="${esc(safeUrl(o.url))}" target="_blank" rel="noopener">${esc(o.shop)}</a>
-      <div class="hist">${esc(hist)}</div></td><td>${ds ? `<s>${Math.round(ds.ref)}</s> ` : ''}${money(o.price)} ${dt}${ds ? `<span class="badge">−${ds.pct}%</span>` : ''}</td>
+    return `<tr><td>${ext(o.url, esc(o.shop))}<div class="hist">${esc(hist)}</div></td>
+      <td>${ds ? `<s>${Math.round(ds.ref)}</s> ` : ''}<b>${money(o.price)}</b> ${dt}${ds ? `<span class="badge">−${ds.pct}%</span>` : ''}</td>
       <td>${o.inStock ? 'в наличии' : 'нет'}</td>
       <td><button class="danger" data-delo="${esc(b.id)}" data-i="${b.offers.indexOf(o)}" aria-label="Удалить предложение">✕</button></td></tr>`;
   }).join('');
-  return `<div class="scroll"><table><tr><th>Магазин</th><th>Цена</th><th>Наличие</th><th></th></tr>${tbl}</table></div>
-    <div class="grid2"><label>Жанр<input data-f="genre" data-id="${esc(b.id)}" value="${esc(b.genre)}"></label>
-    <label>Настроение (через запятую)<input data-f="mood" data-id="${esc(b.id)}" value="${esc(b.mood)}"></label></div>
-    <div class="actions"><button class="danger" data-delb="${esc(b.id)}">Удалить книгу</button></div>`;
+  return `<div class="scroll"><table><tr><th>Магазин</th><th>Цена</th><th>Наличие</th><th></th></tr>${rows}</table></div>`;
 }
+const editBlock = b => `<div class="two"><label>Жанр<input data-f="genre" data-id="${esc(b.id)}" value="${esc(b.genre)}"></label>
+  <label>Настроение (через запятую)<input data-f="mood" data-id="${esc(b.id)}" value="${esc(b.mood)}"></label></div>
+  <div class="actions"><button class="danger" data-delb="${esc(b.id)}">Удалить книгу</button></div>`;
+const bookBody = b => shopsTable(b) + editBlock(b);
 
 function openBook(id) {
   const b = db.books.find(x => x.id === id); if (!b) return;
-  $('bookBox').innerHTML = `<div class="bighead">${img(b, 'cover')}<div><h2>${esc(b.title)}</h2>
-    <div class="meta">${esc(b.author || 'автор не указан')}${b.publisher ? ', ' + esc(b.publisher) : ''}${b.year ? ', ' + b.year : ''}${b.isbn ? ', ISBN ' + esc(b.isbn) : ''}</div>
-    <div class="meta">${b.genre ? `<span class="tag ${isFan(b.genre) ? 'fan' : ''}">${esc(b.genre)}</span>` : ''}</div></div></div><div class="body">${bookBody(b)}</div>`;
+  const offs = [...b.offers].sort((a, c) => a.price - c.price), avail = offs.filter(o => o.inStock), best = avail[0] || offs[0];
+  const ds = discount(best), ps = offs.map(o => o.price), lo = offs[0], hi = offs[offs.length - 1];
+  const tags = (b.genre ? `<span class="tag ${isFan(b.genre) ? 'fan' : ''}">${esc(b.genre)}</span>` : '') + String(b.mood).split(',').map(s => s.trim()).filter(Boolean).map(m => `<span class="tag">${esc(m)}</span>`).join('');
+  $('bookBox').innerHTML = `<div class="bk"><div class="bk-side">${img(b, 'cover')}
+    <div class="buy"><div class="meta">${avail.length ? 'Лучшая цена' : 'Нет в наличии, последняя цена'}</div>
+      <div class="big">${money(best.price)}${ds ? `<span class="badge">−${ds.pct}%</span>` : ''}</div>
+      <a class="btn primary" href="${esc(safeUrl(best.url))}" target="_blank" rel="noopener">Купить в ${esc(best.shop)}</a></div></div>
+    <div><h2>${esc(b.title)}</h2>
+      <div class="meta">${esc(b.author || 'автор не указан')}${b.publisher ? ', ' + esc(b.publisher) : ''}${b.year ? ', ' + b.year : ''}${b.isbn ? ', ISBN ' + esc(b.isbn) : ''}</div>
+      <div style="margin-top:8px">${tags}</div>${ratingBlock(b)}
+      ${offs.length > 1 ? `<div class="statbox"><div>Минимум<b>${money(lo.price)}</b>${esc(lo.shop)}</div><div>Средняя<b>${money(ps.reduce((a, c) => a + c, 0) / ps.length)}</b>${offs.length} магазинов</div><div>Максимум<b>${money(hi.price)}</b>${esc(hi.shop)}</div></div>` : ''}
+      <h3>Где купить</h3>${shopsTable(b)}
+      <h3>Отзывы</h3>${reviewsBlock(b)}
+      <details style="margin-top:18px"><summary style="display:block">Редактировать жанр и настроение</summary><div class="body">${editBlock(b)}</div></details></div></div>`;
   if (!$('dBook').open) $('dBook').showModal();
+}
+
+/* ---------- видавництва, маршрутизация ---------- */
+function renderPubs() {
+  const q = norm($('pubQ').value), g = new Map();
+  for (const b of db.books) { const n = (b.publisher || '').trim(); if (n) (g.get(n) || g.set(n, []).get(n)).push(b); }
+  const list = [...g].filter(([n]) => !q || norm(n).includes(q)).sort((a, c) => c[1].length - a[1].length);
+  $('pubList').innerHTML = list.map(([n, bs]) => {
+    const pr = bs.flatMap(b => b.offers.map(o => o.price)), pics = bs.filter(b => b.image).slice(0, 4);
+    return `<button type="button" class="pub" data-pub="${esc(n)}"><div class="mosaic">${[0, 1, 2, 3].map(i => pics[i] ? img(pics[i], 'mini') : `<div class="cv mini" style="--h:${hue(n + i)}"></div>`).join('')}</div>
+      <div class="title">${esc(n)}</div><div class="meta">${bs.length} книг · ${Math.round(Math.min(...pr))}–${Math.round(Math.max(...pr))} грн</div></button>`;
+  }).join('') || '<p class="empty">Видавництв не знайдено. Вони з’являться, когда в данных будет указано издательство.</p>';
+}
+let lastRoute = '';
+function route(noScroll) {
+  const h = location.hash.slice(1) || 'catalog';
+  if (h === 'deals' && lastRoute !== 'deals') { $('fDisc').checked = true; $('fSort').value = 'disc'; page = 1; }
+  if (lastRoute === 'deals' && h !== 'deals') { $('fDisc').checked = false; $('fSort').value = 'rel'; page = 1; }
+  lastRoute = h;
+  const pubs = h === 'publishers';
+  $('vCatalog').hidden = pubs; $('vPub').hidden = !pubs;
+  document.querySelectorAll('nav a').forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + (h === 'deals' ? 'deals' : pubs ? 'publishers' : 'catalog')));
+  if (pubs) renderPubs(); else render();
+  if (!noScroll) window.scrollTo(0, 0);
 }
 
 /* ---------- события ---------- */
@@ -405,6 +500,7 @@ const rerender = () => { page = 1; render(); };
 ['fPub', 'fGenre', 'fMood', 'fSort', 'fStock', 'fDisc', 'fView'].forEach(id => $(id).addEventListener('change', rerender));
 let qt; $('fQ').addEventListener('input', () => {
   clearTimeout(qt); qt = setTimeout(() => {
+    if (location.hash === '#publishers') location.hash = '#catalog';
     rerender(); const sg = suggest($('fQ').value), el = $('sugg');
     el.hidden = !sg.length;
     el.innerHTML = sg.map(x => `<button type="button" data-q="${esc(x.txt)}">${esc(x.txt)} <span class="meta">· ${x.kind}</span></button>`).join('');
@@ -484,14 +580,26 @@ async function loadRemote() {
     for (const b of remote.books || []) for (const o of b.offers || []) {
       const h = (o.history || []).slice().sort((x, y) => x[0] < y[0] ? -1 : 1);
       if (!ingest({ ...b, ...o }, h.length ? h[h.length - 1][0] : undefined)) continue;
-      const off = db.books.flatMap(x => x.offers).find(x => x.url === o.url);
+      const lb = db.books.find(x => x.offers.some(y => y.url === o.url)), off = lb.offers.find(y => y.url === o.url);
+      if (b.rating) lb.rating = b.rating; if (b.reviews) lb.reviews = b.reviews;
       const m = new Map([...(off.history || []), ...h]);
       off.history = [...m.entries()].sort((x, y) => x[0] < y[0] ? -1 : 1); n++;
     }
-    if (n) { save(); render(); toast('Данные обновлены: ' + String(remote.updated || '').slice(0, 10)); }
+    if (n) { save(); route(true); toast('Данные обновлены: ' + String(remote.updated || '').slice(0, 10)); }
   } catch (e) { /* файл открыт локально или data.json ещё нет, это нормально */ }
 }
-load(); render(); loadRemote();
+window.addEventListener('hashchange', () => route());
+$('pubQ').addEventListener('input', renderPubs);
+$('bFilt').onclick = () => $('side').classList.toggle('open');
+$('dBook').addEventListener('click', e => { if (e.target === $('dBook')) $('dBook').close(); });
+document.addEventListener('click', e => {
+  const pb = e.target.closest('[data-pub]');
+  if (pb) { $('fPub').value = pb.dataset.pub; page = 1; location.hash = '#catalog'; return; }
+  if (e.target.id === 'bClearPub') { $('fPub').value = ''; page = 1; render(); }
+  const m = document.querySelector('.menu');
+  if (m && m.open && (!m.contains(e.target) || e.target.closest('.menu-pop button'))) m.open = false;
+});
+load(); route(true); loadRemote();
 </script>
 </body>
 </html>
