@@ -43,6 +43,17 @@ def _year(node, soup):
     return int(m.group(1)) if m else None
 
 
+def _clean_desc(t, min_len=0):
+    """Аннотация: без HTML-тегов, одним абзацем, не длиннее 1500 символов."""
+    if not t:
+        return ""
+    t = BeautifulSoup(str(t), "lxml").get_text(" ", strip=True)
+    t = re.sub(r"\s+", " ", t).strip()
+    if len(t) < min_len:
+        return ""
+    return t[:1500].rsplit(" ", 1)[0] + "…" if len(t) > 1500 else t
+
+
 def _num(v):
     if v is None:
         return None
@@ -195,6 +206,8 @@ def parse_product_page(html: str, url: str) -> dict | None:
         result["url"] = url
 
     result["year"] = _year(product, soup)
+    # og:description у магазинов часто рекламный текст, поэтому берём его только если он длинный
+    result["description"] = _clean_desc(result.get("description"), 120 if not product else 0)
     if not result.get("image"):
         og = soup.find("meta", property="og:image")
         result["image"] = og.get("content") if og else None

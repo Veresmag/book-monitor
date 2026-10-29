@@ -100,6 +100,8 @@
   .btn { display:inline-block; text-align:center; text-decoration:none; padding:11px 14px; }
   .statbox { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; } .statbox div { background:var(--bg); border-radius:10px; padding:8px 12px; font-size:.82rem; color:var(--muted); }
   .statbox b { display:block; font-size:1.05rem; color:var(--ink); }
+  .annot { margin:0; white-space:pre-line; } .annot.clamp { display:-webkit-box; -webkit-line-clamp:6; -webkit-box-orient:vertical; overflow:hidden; }
+  .linkbtn { border:0; background:none; padding:4px 0; color:var(--accent); }
   .rv { margin:0 0 12px; padding:10px 14px; background:var(--bg); border-radius:10px; border-left:3px solid var(--accent); } .rv p { margin:4px 0; }
   #toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:8px; font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90vw; z-index:50; }
   #toast.on { opacity:1; }
@@ -203,7 +205,7 @@ function ingest(it, day0) {
   let b = isbn && db.books.find(x => x.isbn === isbn);
   if (!b) b = db.books.find(x => x.tk === tk && (!isbn || !x.isbn));
   if (!b) { b = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), title, tk, author: '', publisher: '', isbn: '', genre: '', mood: '', image: '', year: 0, offers: [] }; db.books.push(b); }
-  for (const k of ['author', 'publisher', 'genre', 'mood', 'image']) if (!b[k] && it[k]) b[k] = String(it[k]).trim();
+  for (const k of ['author', 'publisher', 'genre', 'mood', 'image', 'description']) if (!b[k] && it[k]) b[k] = String(it[k]).trim();
   if (!b.year && parseInt(it.year)) b.year = parseInt(it.year);
   if (isbn && !b.isbn) b.isbn = isbn;
   const shop = String(it.shop || '—').trim(), url = it.url || '';
@@ -450,6 +452,8 @@ const editBlock = b => `<div class="two"><label>Жанр<input data-f="genre" da
   <label>Настроение (через запятую)<input data-f="mood" data-id="${esc(b.id)}" value="${esc(b.mood)}"></label></div>
   <div class="actions"><button class="danger" data-delb="${esc(b.id)}">Удалить книгу</button></div>`;
 const bookBody = b => shopsTable(b) + editBlock(b);
+const annotBlock = b => !b.description ? '' : `<h3>Анотація</h3><p class="annot ${b.description.length > 420 ? 'clamp' : ''}">${esc(b.description)}</p>${b.description.length > 420
+  ? `<button type="button" class="linkbtn" onclick="const p=this.previousElementSibling;p.classList.toggle('clamp');this.textContent=p.classList.contains('clamp')?'Читати повністю':'Згорнути'">Читати повністю</button>` : ''}`;
 
 function openBook(id) {
   const b = db.books.find(x => x.id === id); if (!b) return;
@@ -462,7 +466,7 @@ function openBook(id) {
       <a class="btn primary" href="${esc(safeUrl(best.url))}" target="_blank" rel="noopener">Купить в ${esc(best.shop)}</a></div></div>
     <div><h2>${esc(b.title)}</h2>
       <div class="meta">${esc(b.author || 'автор не указан')}${b.publisher ? ', ' + esc(b.publisher) : ''}${b.year ? ', ' + b.year : ''}${b.isbn ? ', ISBN ' + esc(b.isbn) : ''}</div>
-      <div style="margin-top:8px">${tags}</div>${ratingBlock(b)}
+      <div style="margin-top:8px">${tags}</div>${ratingBlock(b)}${annotBlock(b)}
       ${offs.length > 1 ? `<div class="statbox"><div>Минимум<b>${money(lo.price)}</b>${esc(lo.shop)}</div><div>Средняя<b>${money(ps.reduce((a, c) => a + c, 0) / ps.length)}</b>${offs.length} магазинов</div><div>Максимум<b>${money(hi.price)}</b>${esc(hi.shop)}</div></div>` : ''}
       <h3>Где купить</h3>${shopsTable(b)}
       <h3>Отзывы</h3>${reviewsBlock(b)}

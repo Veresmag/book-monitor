@@ -28,7 +28,7 @@ def load_state() -> None:
                     store.import_offer(conn, sid, {
                         "url": o["url"], "title": b["title"], "author": b.get("author"),
                         "publisher": b.get("publisher"), "isbn": b.get("isbn"), "genre": b.get("genre"),
-                        "mood": b.get("mood"), "image": b.get("image"), "year": b.get("year"), "price": o["price"], "old_price": o.get("oldPrice"), "in_stock": o.get("inStock", True),
+                        "mood": b.get("mood"), "image": b.get("image"), "year": b.get("year"), "description": b.get("description"), "price": o["price"], "old_price": o.get("oldPrice"), "in_stock": o.get("inStock", True),
                     }, o.get("history", []), o.get("seen"))
         if os.path.exists(MISSES_JSON):
             for url, ts in json.load(open(MISSES_JSON, encoding="utf-8")).items():
@@ -53,7 +53,7 @@ def export_state() -> None:
             if offers:
                 books.append({"title": b["title"], "author": b["author"] or "", "publisher": b["publisher"] or "",
                               "isbn": b["isbn"] or "", "genre": b["genre"] or "", "mood": b["mood"] or "",
-                              "image": b["image"] or "", "year": b["year"] or 0,
+                              "image": b["image"] or "", "year": b["year"] or 0, "description": b["description"] or "",
                               "offers": offers})
         misses = {r["url"]: r["ts"][:10] for r in conn.execute("SELECT url,ts FROM misses ORDER BY url")}
     dump = lambda x: json.dumps(x, ensure_ascii=False, separators=(",", ":"))

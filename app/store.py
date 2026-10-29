@@ -34,15 +34,15 @@ def _find_or_create_book(conn, p: dict) -> int:
             "UPDATE books SET isbn=COALESCE(isbn,?), author=COALESCE(author,?), "
             "publisher=COALESCE(publisher,?), image=COALESCE(image,?), "
             "genre=COALESCE(NULLIF(genre,''),?), mood=COALESCE(NULLIF(mood,''),?), "
-            "year=COALESCE(year,?) WHERE id=?",
+            "year=COALESCE(year,?), description=COALESCE(NULLIF(description,''),?) WHERE id=?",
             (isbn, p.get("author"), p.get("publisher"), p.get("image"),
-             p.get("genre") or None, p.get("mood") or None, p.get("year"), row["id"]),
+             p.get("genre") or None, p.get("mood") or None, p.get("year"), p.get("description") or None, row["id"]),
         )
         return row["id"]
     cur = conn.execute(
-        "INSERT INTO books(isbn,title_key,title,author,publisher,image,genre,mood,year) VALUES(?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO books(isbn,title_key,title,author,publisher,image,genre,mood,year,description) VALUES(?,?,?,?,?,?,?,?,?,?)",
         (isbn, tkey, p["title"], p.get("author"), p.get("publisher"), p.get("image"),
-         p.get("genre") or None, p.get("mood") or None, p.get("year")),
+         p.get("genre") or None, p.get("mood") or None, p.get("year"), p.get("description") or None),
     )
     return cur.lastrowid
 
