@@ -1,0 +1,13 @@
+name: Analyze shops (my PC)
+on:
+  workflow_dispatch:
+jobs:
+  analyze:
+    runs-on: self-hosted
+    timeout-minutes: 45
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - run: python -m pip install -r requirements.txt
+      - run: python cli.py analyze
