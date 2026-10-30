@@ -2,127 +2,171 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Книжный монитор</title>
 <style>
   :root { --bg:#f3f5f7; --surface:#fff; --ink:#14202b; --muted:#5b6b78; --line:#dce2e8; --accent:#0e7a68; --accent-ink:#fff;
-          --price:#b4471a; --down:#0e7a68; --up:#c0332b; --star:#e8a800;
+          --price:#b4471a; --down:#0e7a68; --up:#c0332b; --star:#e8a800; --r:12px;
+          --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --pad:clamp(12px,4vw,24px); --hdr:110px;
           --shadow:0 1px 2px rgba(20,32,43,.06),0 6px 20px rgba(20,32,43,.07); }
   @media (prefers-color-scheme: dark) {
     :root { --bg:#0f151a; --surface:#172028; --ink:#e8eef2; --muted:#93a3ae; --line:#26323b; --accent:#4fd1b8; --accent-ink:#082019;
             --price:#f2a77c; --down:#4fd1b8; --up:#ff8f86; --star:#f2b822;
             --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35); } }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
-  a { color:var(--accent); }
+  html { -webkit-text-size-adjust:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; overflow-x:hidden; }
+  a { color:var(--accent); } img, svg { max-width:100%; }
   :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   [hidden] { display:none !important; }
-  .wrap { max-width:1320px; margin:0 auto; padding:0 20px; }
-  .top { position:sticky; top:0; z-index:20; background:var(--surface); border-bottom:1px solid var(--line); }
-  .bar1 { display:flex; align-items:center; gap:16px; padding-top:12px; padding-bottom:8px; }
-  .logo { font:700 1.25rem Georgia,"Iowan Old Style",serif; color:var(--ink); text-decoration:none; white-space:nowrap; display:flex; align-items:center; }
-  .logo i { font-style:normal; display:inline-grid; place-items:center; width:30px; height:30px; border-radius:8px; background:var(--accent); color:var(--accent-ink); margin-right:8px; font-size:1rem; }
-  .search { flex:1; max-width:640px; margin:0 auto; }
-  .search input { border-radius:999px; padding:10px 18px; }
-  nav.wrap { display:flex; gap:4px; }
-  nav a { padding:8px 14px; text-decoration:none; color:var(--muted); font-weight:600; border-bottom:3px solid transparent; }
+  .ic { width:20px; height:20px; max-width:none; flex:none; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  .ic.sm { width:16px; height:16px; }
+  .wrap { max-width:1320px; margin:0 auto; padding-inline:var(--pad); }
+  .layout > *, .head > *, .bk > * { min-width:0; }
+  /* шапка */
+  .top { position:sticky; top:0; z-index:20; background:var(--surface); border-bottom:1px solid var(--line); padding-top:env(safe-area-inset-top); }
+  .bar1 { display:flex; align-items:center; gap:var(--s4); padding-block:var(--s3) var(--s2); }
+  .logo { display:flex; align-items:center; gap:var(--s2); font:700 1.2rem/1 Georgia,"Iowan Old Style",serif; color:var(--ink); text-decoration:none; white-space:nowrap; }
+  .logo i { display:grid; place-items:center; width:34px; height:34px; border-radius:10px; background:var(--accent); color:var(--accent-ink); }
+  .search { position:relative; flex:1; max-width:640px; margin-inline:auto; }
+  .search .ic { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+  .search input { border-radius:999px; padding:10px 16px 10px 42px; }
+  nav.wrap { display:flex; gap:var(--s1); overflow-x:auto; scrollbar-width:none; }
+  nav a { display:inline-flex; align-items:center; gap:var(--s2); padding:var(--s3) var(--s4); text-decoration:none; color:var(--muted); font-weight:600; border-bottom:3px solid transparent; white-space:nowrap; }
   nav a.on { color:var(--ink); border-color:var(--accent); }
-  .menu { position:relative; }
-  .menu summary { list-style:none; cursor:pointer; width:40px; height:40px; display:grid; place-items:center; border:1px solid var(--line); border-radius:10px; font-size:1.3rem; }
+  details.menu { position:relative; border:0 !important; }
+  .menu summary { list-style:none; cursor:pointer; width:40px; height:40px; padding:0; display:grid; grid-template-columns:1fr; place-items:center; border:1px solid var(--line); border-radius:10px; }
   .menu summary::-webkit-details-marker { display:none; }
-  .menu-pop { position:absolute; right:0; top:46px; background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); padding:8px; display:grid; gap:2px; min-width:210px; }
-  .menu-pop button { text-align:left; border:0; background:none; }
+  .menu-pop { position:absolute; right:0; top:48px; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:var(--s2); display:grid; gap:2px; min-width:230px; max-width:calc(100vw - 24px); z-index:30; }
+  .menu-pop button { justify-content:flex-start; text-align:left; font-weight:500; border:0; background:none; padding:10px var(--s3); }
   .menu-pop button:hover { background:var(--bg); }
-  main { padding-top:18px; padding-bottom:48px; }
-  .head { display:flex; align-items:baseline; flex-wrap:wrap; gap:12px; margin-bottom:14px; }
-  h1 { margin:0; font:700 1.6rem Georgia,"Iowan Old Style",serif; }
+  main { padding-block:var(--s5) 48px; }
+  .head { display:flex; align-items:center; flex-wrap:wrap; gap:var(--s2) var(--s3); margin-bottom:var(--s4); }
+  h1 { margin:0; font:700 clamp(1.3rem,5vw,1.7rem)/1.2 Georgia,"Iowan Old Style",serif; }
   .count { color:var(--muted); font-size:.9rem; }
-  .chip { font-size:.8rem; padding:3px 10px; border-radius:999px; }
-  .layout { display:grid; grid-template-columns:260px 1fr; gap:26px; align-items:start; }
-  .side { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px; display:grid; gap:12px; position:sticky; top:112px; }
-  .only-m { display:none; }
-  @media (max-width:899px) { .layout { grid-template-columns:1fr; } .side { display:none; position:static; } .side.open { display:grid; }
-    .only-m { display:inline-block; } .search { order:3; flex-basis:100%; max-width:none; } .bar1 { flex-wrap:wrap; } .menu { margin-left:auto; } }
-  label { display:grid; gap:4px; font-size:.8rem; color:var(--muted); }
-  input, select, textarea { font:inherit; padding:9px 11px; border:1px solid var(--line); border-radius:9px; background:var(--bg); color:var(--ink); width:100%; }
-  button, .btn { font:inherit; font-size:.9rem; font-weight:600; padding:8px 12px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--ink); cursor:pointer; }
+  .head .only-m { margin-left:auto; }
+  @media (max-width:559px) { .head .only-m { flex:1 1 100%; margin-left:0; } }
+  .gline { display:flex; flex-wrap:wrap; align-items:center; gap:var(--s2) var(--s3); margin:-4px 0 var(--s4); font-size:.9rem; color:var(--muted); }
+  .glink { display:inline-flex; align-items:center; gap:6px; padding:5px 12px; border:1px solid var(--line); border-radius:999px; text-decoration:none; font-weight:600; background:var(--surface); }
+  .glink:hover { border-color:var(--accent); }
+  .layout { display:grid; grid-template-columns:260px 1fr; gap:var(--s5); align-items:start; }
+  .side { max-height:calc(100dvh - var(--hdr) - 24px); overflow-y:auto; background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:var(--s4); display:grid; gap:var(--s3); position:sticky; top:calc(var(--hdr) + var(--s3)); }
+  .only-m { display:none !important; }
+  @media (max-width:899px) { .layout { grid-template-columns:1fr; } .side { display:none; position:static; max-height:none; } .side.open { display:grid; }
+    .only-m { display:inline-flex !important; } .search { order:3; flex-basis:100%; max-width:none; } .bar1 { flex-wrap:wrap; } .menu { margin-left:auto; } }
+  /* формы */
+  label { display:grid; gap:var(--s1); font-size:.8rem; color:var(--muted); min-width:0; }
+  input, select, textarea { font:inherit; padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:var(--bg); color:var(--ink); width:100%; min-width:0; }
+  button, .btn { display:inline-flex; align-items:center; justify-content:center; gap:var(--s2); line-height:1.2; font:inherit; font-size:.9rem; font-weight:600; padding:9px 14px; border:1px solid var(--line); border-radius:10px; background:var(--surface); color:var(--ink); cursor:pointer; text-decoration:none; }
   button.primary, .btn.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); }
   button.danger { color:var(--up); }
-  .check { display:flex; align-items:center; gap:8px; color:var(--ink); font-size:.92rem; }
+  button.icon { width:36px; height:36px; padding:0; }
+  .check { display:flex; align-items:center; gap:var(--s2); color:var(--ink); font-size:.92rem; }
   .check input { width:auto; }
-  .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .sugg { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
-  .sugg button { font-weight:500; border-radius:999px; }
-  #dym { font-size:.92rem; margin-bottom:8px; } #dym button { padding:2px 10px; }
+  .two, .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--s3); }
+  .sugg { display:flex; flex-wrap:wrap; gap:var(--s2); margin-bottom:var(--s3); }
+  .sugg button { font-weight:500; border-radius:999px; text-align:left; }
+  #dym { font-size:.92rem; margin-bottom:var(--s3); } #dym button { padding:2px 10px; }
+  .chip { font-size:.8rem; padding:3px 10px; border-radius:999px; }
   /* обложки */
-  .cv { position:relative; overflow:hidden; aspect-ratio:2/3; border-radius:7px; background:hsl(var(--h) 28% 32%); color:#fff;
-        display:flex; align-items:flex-end; padding:10px; font:600 .82rem/1.25 Georgia,serif; }
+  .cv { position:relative; overflow:hidden; aspect-ratio:2/3; border-radius:8px; background:hsl(var(--h) 28% 32%); color:#fff;
+        display:flex; align-items:flex-end; padding:var(--s3); font:600 .82rem/1.25 Georgia,serif; }
   .cv span { display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
-  .cv img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-  .cv.thumb { width:48px; padding:0; border-radius:4px; } .cv.thumb span, .cv.mini span { display:none; }
-  .cv.mini { padding:0; border-radius:4px; }
-  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr)); gap:24px 16px; }
-  .card { text-align:left; background:none; border:0; padding:0; color:inherit; font-weight:400; display:grid; gap:3px; align-content:start; }
+  .cv img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; max-width:none; }
+  .cv.thumb { width:48px; padding:0; border-radius:5px; } .cv.thumb span, .cv.mini span { display:none; }
+  .cv.mini { padding:0; border-radius:5px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:var(--s5) var(--s4); }
+  @media (max-width:559px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px var(--s3); } }
+  .card { text-align:left; background:none; border:0; padding:0; color:inherit; font-weight:400; display:grid; gap:var(--s1); align-content:start; justify-content:stretch; }
   .card .cv { box-shadow:var(--shadow); transition:transform .15s; } .card:hover .cv { transform:translateY(-3px); }
-  .card .title { font-size:.95rem; line-height:1.3; margin-top:6px; }
-  .title { font-weight:600; } .meta { color:var(--muted); font-size:.86rem; }
+  .card .title { font-size:.95rem; line-height:1.3; margin-top:var(--s2); overflow-wrap:anywhere; }
+  .title { font-weight:600; overflow-wrap:anywhere; } .meta { color:var(--muted); font-size:.86rem; overflow-wrap:anywhere; }
   .price { color:var(--price); font-weight:700; font-size:1.08rem; white-space:nowrap; text-align:right; } .price.left { text-align:left; }
   .badge { display:inline-block; font-size:.72rem; font-weight:700; padding:1px 7px; border-radius:999px; background:var(--price); color:var(--surface); margin-left:6px; vertical-align:middle; }
-  .tag { display:inline-block; font-size:.74rem; padding:1px 9px; border:1px solid var(--line); border-radius:999px; margin:0 4px 4px 0; color:var(--muted); }
+  .tag { display:inline-block; font-size:.74rem; padding:1px 9px; border:1px solid var(--line); border-radius:999px; margin:0 var(--s1) var(--s1) 0; color:var(--muted); }
   .tag.fan { border-color:var(--accent); color:var(--accent); }
   .stats b { color:var(--ink); } s { color:var(--muted); }
   .st { background:linear-gradient(90deg,var(--star) var(--p),var(--line) var(--p)); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing:2px; }
-  .rate { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:8px 0; } .rate .st { font-size:1.2rem; } .rate.sm { margin:0; font-size:.85rem; }
+  .rate { display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap; margin:var(--s2) 0; } .rate .st { font-size:1.2rem; } .rate.sm { margin:0; font-size:.85rem; }
   /* список */
   details { border-top:1px solid var(--line); } details:last-of-type { border-bottom:1px solid var(--line); }
-  summary { display:grid; grid-template-columns:auto 1fr auto; gap:14px; align-items:center; padding:12px 0; cursor:pointer; list-style:none; }
+  summary { display:grid; grid-template-columns:auto 1fr auto; gap:var(--s3) var(--s4); align-items:center; padding:var(--s3) 0; cursor:pointer; list-style:none; }
   summary::-webkit-details-marker { display:none; }
-  .body { padding:0 0 14px; display:grid; gap:12px; } .scroll { overflow-x:auto; }
-  table { width:100%; border-collapse:collapse; font-size:.92rem; } th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); }
+  @media (max-width:479px) { summary { grid-template-columns:auto 1fr; } summary .price { grid-column:2; text-align:left; } }
+  .body { padding:0 0 var(--s4); display:grid; gap:var(--s3); } .scroll { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.92rem; } th, td { text-align:left; padding:var(--s2) 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  @media (max-width:479px) { table { font-size:.85rem; } }
   .hist { font-size:.8rem; color:var(--muted); } .down { color:var(--down); } .up { color:var(--up); }
-  .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
-  .empty { padding:28px 0; color:var(--muted); }
+  .actions { display:flex; flex-wrap:wrap; gap:var(--s2); justify-content:flex-end; margin-top:var(--s2); }
+  .empty { padding:var(--s5) 0; color:var(--muted); }
+  .empty-state { display:grid; justify-items:center; gap:var(--s2); text-align:center; padding:var(--s6) var(--s4); background:var(--surface); border:1px dashed var(--line); border-radius:var(--r); }
+  .empty-state svg.art { width:min(180px,60%); height:auto; margin-bottom:var(--s2); } .empty-state h3 { margin:0; font:700 1.15rem Georgia,serif; } .empty-state p { margin:0; max-width:34em; }
+  .gbtns { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--s2); margin-top:var(--s3); }
   /* видавництва */
-  .pubgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:16px; }
-  .pub { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:12px; text-align:left; color:inherit; font-weight:400; display:grid; gap:8px; box-shadow:var(--shadow); }
+  .pubgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr)); gap:var(--s4); }
+  .pub { background:var(--surface); border:1px solid var(--line); border-radius:var(--r); padding:var(--s3); text-align:left; color:inherit; font-weight:400; display:grid; gap:var(--s2); box-shadow:var(--shadow); justify-content:stretch; }
   .pub:hover { border-color:var(--accent); } .mosaic { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
   .head input { width:260px; max-width:100%; }
   /* окна */
-  dialog { border:1px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); width:min(520px,94vw); padding:20px; }
+  dialog { border:1px solid var(--line); border-radius:16px; background:var(--surface); color:var(--ink); width:min(520px,calc(100vw - 16px)); max-height:calc(100dvh - 16px); overflow:auto; padding:var(--s5); }
   dialog::backdrop { background:rgba(0,0,0,.5); }
-  dialog h2 { margin:0 0 12px; font:700 1.1rem Georgia,serif; } .form { display:grid; gap:10px; } .help { font-size:.9rem; color:var(--muted); } .help li { margin-bottom:6px; }
-  #dBook { width:min(980px,96vw); max-height:92vh; padding:26px; overflow:auto; }
-  .x { position:absolute; right:12px; top:12px; width:36px; height:36px; padding:0; border-radius:50%; }
-  .bk { display:grid; grid-template-columns:210px 1fr; gap:28px; }
-  @media (max-width:700px) { .bk { grid-template-columns:1fr; } .bk-side { max-width:200px; } }
-  .bk h2 { margin:0 28px 4px 0; font:700 1.6rem/1.2 Georgia,serif; } .bk h3 { margin:24px 0 8px; font:700 1.05rem Georgia,serif; }
-  .buy { margin-top:14px; display:grid; gap:8px; } .big { font-size:1.7rem; font-weight:800; color:var(--price); }
-  .btn { display:inline-block; text-align:center; text-decoration:none; padding:11px 14px; }
-  .statbox { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; } .statbox div { background:var(--bg); border-radius:10px; padding:8px 12px; font-size:.82rem; color:var(--muted); }
+  dialog h2 { margin:0 0 var(--s3); font:700 1.1rem Georgia,serif; } .form { display:grid; gap:var(--s3); } .help { font-size:.9rem; color:var(--muted); } .help li { margin-bottom:6px; }
+  #dBook { width:min(980px,calc(100vw - 16px)); padding:clamp(14px,4vw,28px); }
+  .x { position:absolute; right:var(--s3); top:var(--s3); width:36px; height:36px; padding:0; border-radius:50%; z-index:2; }
+  .bk { display:grid; grid-template-columns:210px 1fr; gap:var(--s5) 28px; }
+  @media (max-width:700px) { #dBook { padding-top:56px; } .bk { grid-template-columns:1fr; }
+    .bk-side { display:grid; grid-template-columns:116px 1fr; gap:var(--s2) var(--s4); }
+    .bk-side > .cv { grid-row:1 / 3; } .bk-side .buy { display:contents; } .buy .meta { align-self:end; } .buy .big { align-self:start; } .buy .btn { grid-column:1 / -1; } }
+  .bk h2 { margin:0 40px var(--s1) 0; font:700 clamp(1.25rem,5vw,1.6rem)/1.2 Georgia,serif; } .bk h3 { margin:var(--s5) 0 var(--s2); font:700 1.05rem Georgia,serif; }
+  .buy { margin-top:var(--s4); display:grid; gap:var(--s2); } .big { font-size:1.7rem; font-weight:800; color:var(--price); line-height:1.2; }
+  .btn { padding:11px 14px; }
+  .statbox { display:grid; grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:var(--s2); margin:var(--s3) 0; } .statbox div { background:var(--bg); border-radius:10px; padding:var(--s2) var(--s3); font-size:.82rem; color:var(--muted); }
   .statbox b { display:block; font-size:1.05rem; color:var(--ink); }
+  .rv { margin:0 0 var(--s3); padding:10px var(--s4); background:var(--bg); border-radius:10px; border-left:3px solid var(--accent); } .rv p { margin:var(--s1) 0; }
   .annot { margin:0; white-space:pre-line; } .annot.clamp { display:-webkit-box; -webkit-line-clamp:6; -webkit-box-orient:vertical; overflow:hidden; }
-  .linkbtn { border:0; background:none; padding:4px 0; color:var(--accent); }
-  .rv { margin:0 0 12px; padding:10px 14px; background:var(--bg); border-radius:10px; border-left:3px solid var(--accent); } .rv p { margin:4px 0; }
-  #toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:9px 16px; border-radius:8px; font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s; max-width:90vw; z-index:50; }
+  .linkbtn { border:0; background:none; padding:var(--s1) 0; color:var(--accent); justify-content:flex-start; }
+  #toast { position:fixed; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:var(--bg); padding:var(--s2) var(--s4); border-radius:var(--r); font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .2s; max-width:calc(100vw - 24px); z-index:50; }
   #toast.on { opacity:1; }
+  @media (pointer:coarse) { button, .btn, input, select { min-height:42px; } .cv.thumb, .cv.mini { min-height:0; } }
+  @media (max-width:479px) { nav.wrap { gap:0; } nav a { flex:1; justify-content:center; padding:var(--s3) 6px; font-size:.9rem; } }
+  @media (max-width:379px) { nav a .ic { display:none; } .logo { font-size:1.05rem; } }
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z"/><path d="M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3"/><path d="M9 7.5h6"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></symbol>
+<symbol id="i-dots" viewBox="0 0 24 24"><g fill="currentColor" stroke="none"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></g></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+<symbol id="i-filter" viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></symbol>
+<symbol id="i-shelf" viewBox="0 0 24 24"><rect x="3.5" y="4" width="4.5" height="16" rx="1"/><rect x="9.5" y="4" width="4.5" height="16" rx="1"/><path d="m16 6 4.2-1.2 3 14.2-4.2 1.1z"/></symbol>
+<symbol id="i-percent" viewBox="0 0 24 24"><path d="M19 5 5 19"/><circle cx="7" cy="7" r="2.3"/><circle cx="17" cy="17" r="2.3"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M7 4h10v16l-5-4-5 4z"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V5m0 0L8 9m4-4 4 4M5 20h14"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.6 2.2c-.8.4-1.2 1-1.2 1.8M12 17h.01"/></symbol>
+<symbol id="i-cart" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M3 4h2.5l2.3 10.5h10.4L20 7H6.4"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+</defs></svg>
 <header class="top">
   <div class="wrap bar1">
-    <a class="logo" href="#catalog"><i>К</i>Книжный монитор</a>
-    <div class="search"><input id="fQ" type="search" autocomplete="off" placeholder="Назва, автор, ISBN: можна російською й з помилками"></div>
-    <details class="menu"><summary aria-label="Меню">⋯</summary><div class="menu-pop">
-      <button id="bAdd">Добавить книгу</button><button id="bPaste">Вставить из закладки</button>
-      <button id="bImport">Импорт CSV / JSON</button><button id="bExport">Экспорт</button><button id="bHelp">Как собирать цены</button>
+    <a class="logo" href="#catalog"><i><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg></i>Книжный монитор</a>
+    <div class="search"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><input id="fQ" type="search" autocomplete="off" placeholder="Пошук: назва, автор, ISBN" title="Можна шукати російською, латиницею й з помилками" aria-label="Поиск"></div>
+    <details class="menu"><summary aria-label="Меню"><svg class="ic" aria-hidden="true"><use href="#i-dots"/></svg></summary><div class="menu-pop">
+      <button id="bAdd"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Добавить книгу</button><button id="bPaste"><svg class="ic" aria-hidden="true"><use href="#i-bookmark"/></svg>Вставить из закладки</button>
+      <button id="bImport"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg>Импорт CSV / JSON</button><button id="bExport"><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg>Экспорт</button><button id="bHelp"><svg class="ic" aria-hidden="true"><use href="#i-help"/></svg>Как собирать цены</button>
     </div></details>
   </div>
-  <nav class="wrap"><a href="#catalog">Каталог</a><a href="#publishers">Видавництва</a><a href="#deals">Знижки</a></nav>
+  <nav class="wrap"><a href="#catalog"><svg class="ic" aria-hidden="true"><use href="#i-grid"/></svg>Каталог</a><a href="#publishers"><svg class="ic" aria-hidden="true"><use href="#i-shelf"/></svg>Видавництва</a><a href="#deals"><svg class="ic" aria-hidden="true"><use href="#i-percent"/></svg>Знижки</a></nav>
 </header>
 <main class="wrap">
   <div id="dym" hidden></div><div class="sugg" id="sugg" hidden></div>
   <section id="vCatalog">
-    <div class="head"><h1 id="catTitle">Каталог</h1><span class="count" id="count"></span><button class="only-m" id="bFilt">Фильтры</button></div>
+    <div class="head"><h1 id="catTitle">Каталог</h1><span class="count" id="count"></span><button class="only-m" id="bFilt"><svg class="ic" aria-hidden="true"><use href="#i-filter"/></svg>Фильтры</button></div>
+    <div class="gline" id="gline" hidden></div>
     <div class="layout">
       <aside class="side" id="side">
         <label>Автор<input id="fAuthor"></label>
@@ -159,7 +203,7 @@
   <div class="actions"><button data-close>Отмена</button><button class="primary" id="aSave">Сохранить</button></div>
 </div></dialog>
 
-<dialog id="dBook"><button class="x" data-close aria-label="Закрыть">✕</button><div id="bookBox"></div></dialog>
+<dialog id="dBook"><button class="x" data-close aria-label="Закрыть"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button><div id="bookBox"></div></dialog>
 
 <dialog id="dPaste"><h2>Вставить из закладки</h2><div class="form">
   <p class="help">Нажми закладку на странице книги в магазине, затем вставь сюда (Ctrl+V). Можно вставить несколько подряд.</p>
@@ -338,6 +382,17 @@ function didYouMean(raw) {  // «возможно, вы имели в виду�
 }
 /*SEARCH-END*/
 
+const ic = (n, c = '') => `<svg class="ic ${c}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const EMPTY_SVG = `<svg class="art" viewBox="0 0 200 150" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="color:var(--muted)">
+  <rect x="26" y="96" width="104" height="18" rx="3"/><rect x="36" y="76" width="92" height="18" rx="3"/><rect x="30" y="56" width="98" height="18" rx="3"/>
+  <path d="M46 105h40M56 85h30M44 65h44" stroke="var(--accent)"/><circle cx="142" cy="52" r="24" fill="var(--surface)"/><path d="m159 69 22 22" stroke-width="5"/>
+  <path d="M133 46a11 11 0 0 1 11-6" stroke="var(--accent)"/></svg>`;
+const gUrl = (q, extra = '') => `https://www.google.com/search?${extra}q=${encodeURIComponent(q + ' купити книгу')}`;
+const googleLinks = q => `<a class="glink" href="${gUrl(q)}" target="_blank" rel="noopener">${ic('search', 'sm')} Google</a>
+  <a class="glink" href="${gUrl(q, 'tbm=bks&')}" target="_blank" rel="noopener">${ic('book', 'sm')} Google Книги</a>
+  <a class="glink" href="${gUrl(q, 'tbm=shop&')}" target="_blank" rel="noopener">${ic('cart', 'sm')} Google Покупки</a>`;
+const emptyState = q => `<div class="empty-state">${EMPTY_SVG}<h3>${q ? `Ничего не нашли по «${esc(q)}»` : 'Ничего не найдено'}</h3>
+  <p class="meta">${q ? 'Возможно, этой книги ещё нет в нашем каталоге. Поищите в Google:' : 'Измените или сбросьте фильтры.'}</p>${q ? `<div class="gbtns">${googleLinks(q)}</div>` : ''}</div>`;
 const FANT = '★ Все фэнтези', DAY = 864e5;
 function discount(o) {  // старая цена из карточки магазина или максимум за 60 дней
   const cut = new Date(Date.now() - 60 * DAY).toISOString().slice(0, 10);
@@ -353,7 +408,7 @@ const isFan = g => /фентез|фэнтез|fantasy/i.test(g || '');
 
 function render() {
   fillSelect('fPub', uniq('publisher')); fillSelect('fGenre', [FANT, ...uniq('genre')]); fillSelect('fMood', uniq('mood'));
-  const qq = queries($('fQ').value), au = norm($('fAuthor').value), pub = $('fPub').value, ge = $('fGenre').value, mo = $('fMood').value;
+  const rawQ = $('fQ').value.trim(), qq = queries($('fQ').value), au = norm($('fAuthor').value), pub = $('fPub').value, ge = $('fGenre').value, mo = $('fMood').value;
   const min = parseFloat($('fMin').value.replace(',', '.')), max = parseFloat($('fMax').value.replace(',', '.'));
   const fmtSel = $('fFormat').value, y1 = parseInt($('fYFrom').value), y2 = parseInt($('fYTo').value), view = $('fView').value, stock = $('fStock').checked, onlyDisc = $('fDisc').checked, sort = $('fSort').value;
 
@@ -385,15 +440,17 @@ function render() {
   $('dym').hidden = !dym;
   if (dym) $('dym').innerHTML = `Возможно, вы искали: <button type="button" data-q="${esc(dym)}">${esc(dym)}</button>`;
   $('count').textContent = db.books.length ? `Показано ${rows.length} из ${db.books.length}` : '';
-  $('catTitle').innerHTML = pub ? `${esc(pub)} <button class="chip" id="bClearPub">✕ все видавництва</button>` : 'Каталог';
+  $('catTitle').innerHTML = pub ? `${esc(pub)} <button class="chip" id="bClearPub">${ic('x', 'sm')} все видавництва</button>` : 'Каталог';
+  $('gline').hidden = !(rawQ && rows.length);
+  $('gline').innerHTML = rawQ && rows.length ? `Не нашли нужное? ${googleLinks(rawQ)}` : '';
   if (!db.books.length) {
-    $('list').innerHTML = `<div class="empty"><p>Пока пусто. Добавь книги закладкой, импортом CSV или вручную.</p>
+    $('list').innerHTML = `<div class="empty-state">${EMPTY_SVG}<h3>Пока пусто</h3><p class="meta">Добавь книги закладкой, импортом CSV или вручную.</p>
       <button id="bDemo">Загрузить демо-данные</button></div>`;
     return;
   }
   const shown = rows.slice(0, page * 24);
   const more = rows.length > shown.length ? `<button id="bMore" class="primary" style="margin:18px auto;display:block">Показать ещё (${rows.length - shown.length})</button>` : '';
-  if (!rows.length) { $('list').innerHTML = '<p class="empty">Ничего не найдено по этим фильтрам.</p>'; return; }
+  if (!rows.length) { $('list').innerHTML = emptyState(rawQ); return; }
   if (view === 'grid') {
     $('list').innerHTML = `<div class="grid">${shown.map(({ b, best, pct }) => `<button type="button" class="card" data-open="${esc(b.id)}">${img(b, 'cover')}
       <div class="title">${esc(b.title)}</div><div class="meta">${esc(b.author || '')}${b.year ? ' · ' + b.year : ''}</div>${stars(b)}${fmtTag(b)}
@@ -449,7 +506,7 @@ function shopsTable(b) {
     return `<tr><td>${ext(o.url, esc(o.shop))}<div class="hist">${esc(hist)}</div></td>
       <td>${ds ? `<s>${Math.round(ds.ref)}</s> ` : ''}<b>${money(o.price)}</b> ${dt}${ds ? `<span class="badge">−${ds.pct}%</span>` : ''}</td>
       <td>${o.inStock ? 'в наличии' : 'нет'}</td>
-      <td><button class="danger" data-delo="${esc(b.id)}" data-i="${b.offers.indexOf(o)}" aria-label="Удалить предложение">✕</button></td></tr>`;
+      <td><button class="danger" data-delo="${esc(b.id)}" data-i="${b.offers.indexOf(o)}" aria-label="Удалить предложение">${ic('trash')}</button></td></tr>`;
   }).join('');
   return `<div class="scroll"><table><tr><th>Магазин</th><th>Цена</th><th>Наличие</th><th></th></tr>${rows}</table></div>`;
 }
@@ -468,7 +525,7 @@ function openBook(id) {
   $('bookBox').innerHTML = `<div class="bk"><div class="bk-side">${img(b, 'cover')}
     <div class="buy"><div class="meta">${avail.length ? 'Лучшая цена' : 'Нет в наличии, последняя цена'}</div>
       <div class="big">${money(best.price)}${ds ? `<span class="badge">−${ds.pct}%</span>` : ''}</div>
-      <a class="btn primary" href="${esc(safeUrl(best.url))}" target="_blank" rel="noopener">Купить в ${esc(best.shop)}</a></div></div>
+      <a class="btn primary" href="${esc(safeUrl(best.url))}" target="_blank" rel="noopener">${ic('cart')} Купить в ${esc(best.shop)}</a></div></div>
     <div><h2>${esc(b.title)}</h2>
       <div class="meta">${esc(b.author || 'автор не указан')}${b.publisher ? ', ' + esc(b.publisher) : ''}${b.year ? ', ' + b.year : ''}${b.isbn ? ', ISBN ' + esc(b.isbn) : ''}</div>
       <div style="margin-top:8px">${tags}</div>${ratingBlock(b)}${annotBlock(b)}
@@ -608,6 +665,8 @@ document.addEventListener('click', e => {
   const m = document.querySelector('.menu');
   if (m && m.open && (!m.contains(e.target) || e.target.closest('.menu-pop button'))) m.open = false;
 });
+const setHdr = () => document.documentElement.style.setProperty('--hdr', ((document.querySelector('.top') || {}).offsetHeight || 110) + 'px');
+window.addEventListener('resize', setHdr); setHdr();
 load(); route(true); loadRemote();
 </script>
 </body>
